@@ -7,7 +7,7 @@
     modification, are permitted (subject to the limitations in the
     disclaimer below) provided that the following conditions are met:
 
-    * Redistributions of source code must retain the above copyright
+    * Redistributions of source err must retain the above copyright
       notice, this list of conditions and the following disclaimer.
 
     * Redistributions in binary form must reproduce the above copyright
@@ -62,26 +62,25 @@ struct rsrc_section_size {
   uint32_t section_start_pos;
 };
 
-//TODO: proper error handling (perror?)
 //TODO: language handling, get/set _string language api
 //TODO: iterator?
 //TODO: IMAGE_SECTION_HEADER.name needs special treatment!
 
 //TODO: documentation
-//TODO: cleanup source code (variable name, coding style)
+//TODO: cleanup source err (variable name, coding style)
 
 
 /* 
  * misc utils
  */
 
-void * pcr_malloc(size_t size, enum pcr_error *code);
-void * pcr_realloc(void *ptr, size_t size, enum pcr_error *code);
+void * pcr_malloc(size_t size, enum pcr_error *err);
+void * pcr_realloc(void *ptr, size_t size, enum pcr_error *err);
 
-void pcr_fread(void *ptr, size_t size, size_t nmemb, FILE *stream, enum pcr_error *code);
-void pcr_fwrite(const void*ptr, size_t size, size_t nmemb, FILE *stream, enum pcr_error *code);
+void pcr_fread(void *ptr, size_t size, size_t nmemb, FILE *stream, enum pcr_error *err);
+void pcr_fwrite(const void*ptr, size_t size, size_t nmemb, FILE *stream, enum pcr_error *err);
 
-void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *code);
+void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *err);
 
 /*
  * compare functions
@@ -94,25 +93,25 @@ int pcr_comp_id_tree_nodes (const void *a, const void *b);
  * read functions
  */
 
-void pcr_read_optional_header(struct pcr_file *pfile, FILE *file);
-void pcr_read_section_table(struct pcr_file *pfile, FILE *file);
-void pcr_read_section_data(struct pcr_file *pfile, FILE *file);
-void pcr_read_rsrc_section(struct pcr_file *pcr_file, FILE *file);
+void pcr_read_optional_header(struct pcr_file *pfile, FILE *file, pcr_error_code *err);
+void pcr_read_section_table(struct pcr_file *pfile, FILE *file, pcr_error_code *err);
+void pcr_read_section_data(struct pcr_file *pfile, FILE *file, pcr_error_code *err);
+void pcr_read_rsrc_section(struct pcr_file *pcr_file, FILE *file, pcr_error_code *err);
  
-struct resource_tree_node *pcr_read_rsrc_tree(FILE *file, enum pcr_error *code, 
+struct resource_tree_node *pcr_read_rsrc_tree(FILE *file, enum pcr_error *err, 
       long section_offset, int level, enum resource_type type);
 
-struct resource_tree_node * pcr_read_sub_tree(FILE *file, enum pcr_error *code, long section_offset,
+struct resource_tree_node * pcr_read_sub_tree(FILE *file, enum pcr_error *err, long section_offset,
                   struct resource_directory_entry *directory_entry, 
                   enum rsrc_node_identifier identified_by, int level, enum resource_type type);              
 
 struct resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, int count, 
-                                    enum pcr_error *code);
+                                    enum pcr_error *err);
 
-struct resource_data* pcr_read_rsrc_data(FILE *file, enum pcr_error *code, uint32_t size, 
+struct resource_data* pcr_read_rsrc_data(FILE *file, enum pcr_error *err, uint32_t size, 
                                          enum resource_type type);
 
-struct resource_string *pcr_read_string(FILE *file, enum pcr_error *code);
+struct resource_string *pcr_read_string(FILE *file, enum pcr_error *err);
 
 /*
  * pre write functions
@@ -127,10 +126,10 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node,
  */
 
 void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream, 
-                           enum pcr_error *code, struct rsrc_section_size size);
+                           enum pcr_error *err, struct rsrc_section_size size);
 
 void pcr_write_rsrc_section(PCR_FILE *pcr_file, FILE *stream, 
-                           enum pcr_error *code, struct rsrc_section_size size);
+                           enum pcr_error *err, struct rsrc_section_size size);
 
 void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, 
                              enum pcr_error *err_code, struct rsrc_section_size size);
@@ -169,9 +168,9 @@ struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *
 
 /**
  */
-const char* pcr_error_message(struct pcr_file *pfile)
+const char* pcr_error_message(pcr_error_code err)
 {
-  switch(pfile->err_code)
+  switch(err)
   {
     case PCR_ERROR_NONE: return "Success"; break;
     case PCR_ERROR_BAD_ALLOC: return "Bad alloc!"; break;
@@ -189,18 +188,18 @@ const char* pcr_error_message(struct pcr_file *pfile)
 
 /**
  * "safe" malloc with error handling. Allocation will be skipped if 
- *  error code != NONE
+ *  error err != NONE
  */
-void * pcr_malloc(size_t size, enum pcr_error *code)
+void * pcr_malloc(size_t size, enum pcr_error *err)
 {
   void *alloc_var = NULL;
   
-  if (*code == PCR_ERROR_NONE && size > 0)
+  if (*err == PCR_ERROR_NONE && size > 0)
   {
     alloc_var = malloc(size);
     
     if (alloc_var == NULL)
-      *code = PCR_ERROR_BAD_ALLOC;
+      *err = PCR_ERROR_BAD_ALLOC;
   }
   
   return alloc_var;
@@ -209,16 +208,16 @@ void * pcr_malloc(size_t size, enum pcr_error *code)
 /**
  * "safe" realloc with error handling. *ptr will not be freed on error!
  */
-void * pcr_realloc(void *ptr, size_t size, enum pcr_error *code)
+void * pcr_realloc(void *ptr, size_t size, enum pcr_error *err)
 {
   void *new_alloc = NULL;
 
-  if (*code == PCR_ERROR_NONE)
+  if (*err == PCR_ERROR_NONE)
   {
     new_alloc = realloc(ptr, size);
 
     if (new_alloc == NULL)
-      *code = PCR_ERROR_BAD_ALLOC;
+      *err = PCR_ERROR_BAD_ALLOC;
   }
 
   return new_alloc;
@@ -228,12 +227,12 @@ void * pcr_realloc(void *ptr, size_t size, enum pcr_error *code)
  * fread with enum pcr_error checking
  */
 void pcr_fread(void *ptr, size_t size, size_t nmemb, FILE *stream, 
-               enum pcr_error *code)
+               enum pcr_error *err)
 {
-  if (*code == PCR_ERROR_NONE)
+  if (*err == PCR_ERROR_NONE)
   {
     if (fread(ptr, size, nmemb, stream) < nmemb)
-      *code = PCR_ERROR_READ;
+      *err = PCR_ERROR_READ;
   }
 }
 
@@ -241,24 +240,24 @@ void pcr_fread(void *ptr, size_t size, size_t nmemb, FILE *stream,
  * fwrite with enum pcr_error checking
  */
 void pcr_fwrite(const void*ptr, size_t size, size_t nmemb, FILE *stream,
-                enum pcr_error *code)
+                enum pcr_error *err)
 {
-  if (*code == PCR_ERROR_NONE)
+  if (*err == PCR_ERROR_NONE)
   {
     if (fwrite(ptr, size, nmemb, stream) < nmemb)
-      *code = PCR_ERROR_WRITE;
+      *err = PCR_ERROR_WRITE;
   }
 }
 
 /**
  * Fills 0 until pos.
  */
-void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *code)
+void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *err)
 {
   char empty = 0;
   
   while (ftell(stream) < pos)
-     pcr_fwrite(&empty, 1, 1, stream, code);
+     pcr_fwrite(&empty, 1, 1, stream, err);
 }
 
 /*
@@ -311,40 +310,40 @@ void pcr_debug_info(struct pcr_file *pfile)
 /**
  * 
  */
-struct pcr_file *pcr_read_file(const char *filename)
+struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
 {
   FILE *file = NULL;
   struct pcr_file *pfile = NULL;
   
-  pfile = (PCR_FILE *) malloc(sizeof(PCR_FILE));
+  if (PCR_FAILURE(*err))
+    return NULL;
+  
+  pfile = (struct pcr_file *) pcr_malloc(sizeof(struct pcr_file), err);
   
   pfile->rm_stub = NULL;
   pfile->image_optional_header32 = NULL;
   pfile->section_table = NULL;
   pfile->rsrc_section_data = NULL;
   pfile->section_data = NULL;
-  pfile->err_code = PCR_ERROR_NONE;
-  
-  enum pcr_error *err_code = &pfile->err_code;
   
   file = fopen(filename, "rb");
   
   if (file == NULL)
-    *err_code = PCR_ERROR_READ;
+    *err= PCR_ERROR_READ;
   else
   {
-    pcr_fread(&pfile->dos_header, sizeof(struct image_dos_header), 1, file, err_code);
+    pcr_fread(&pfile->dos_header, sizeof(struct image_dos_header), 1, file, err);
     
     unsigned int rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
-    pfile->rm_stub = (char *)pcr_malloc(rm_stub_size, err_code);
+    pfile->rm_stub = (char *)pcr_malloc(rm_stub_size, err);
     
-    pcr_fread(pfile->rm_stub, rm_stub_size, 1, file, err_code);    
-    pcr_fread(pfile->signature, sizeof(char), 4, file, err_code);
-    pcr_fread(&pfile->image_file_header, sizeof(struct image_file_header), 1, file, err_code);
+    pcr_fread(pfile->rm_stub, rm_stub_size, 1, file, err);    
+    pcr_fread(pfile->signature, sizeof(char), 4, file, err);
+    pcr_fread(&pfile->image_file_header, sizeof(struct image_file_header), 1, file, err);
     
-    pcr_read_optional_header(pfile, file);
-    pcr_read_section_table(pfile, file);
-    pcr_read_section_data(pfile, file);
+    pcr_read_optional_header(pfile, file, err);
+    pcr_read_section_table(pfile, file, err);
+    pcr_read_section_data(pfile, file, err);
     
     fclose(file);
   }
@@ -356,29 +355,28 @@ struct pcr_file *pcr_read_file(const char *filename)
 /**
  * Allocate and read optional header if available
  */
-void pcr_read_optional_header(struct pcr_file *pfile, FILE *file)
+void pcr_read_optional_header(struct pcr_file *pfile, FILE *file, pcr_error_code *err)
 { 
   uint16_t magic = 0;
-  enum pcr_error *err_code = &pfile->err_code;
   
-  if (*err_code == PCR_ERROR_NONE && pfile->image_file_header.size_of_optional_header > 0)
+  if (*err== PCR_ERROR_NONE && pfile->image_file_header.size_of_optional_header > 0)
   {
     if (pfile->image_file_header.size_of_optional_header !=  SUPPORTED_OPTIONAL_HEADER_SIZE)
     {
-      *err_code = PCR_ERROR_UNSUPPORTED;
+      *err= PCR_ERROR_UNSUPPORTED;
       return;
     }
     
-    pcr_fread(&magic, sizeof(uint16_t), 1, file, err_code);
+    pcr_fread(&magic, sizeof(uint16_t), 1, file, err);
     
     if (magic != IMAGE_OPTIONAL_HDR32_MAGIC)
-      *err_code = PCR_ERROR_UNSUPPORTED;
+      *err= PCR_ERROR_UNSUPPORTED;
     else
     {
       pfile->image_optional_header32 = (struct image_optional_header32 *)
-          pcr_malloc(sizeof(struct image_optional_header32), err_code);
+          pcr_malloc(sizeof(struct image_optional_header32), err);
         
-      if (*err_code == PCR_ERROR_NONE)
+      if (*err== PCR_ERROR_NONE)
       {
         struct image_optional_header32 *opt_header = pfile->image_optional_header32;
         
@@ -386,7 +384,7 @@ void pcr_read_optional_header(struct pcr_file *pfile, FILE *file)
         
         // skipping magic on read
         pcr_fread(&opt_header->major_linker_version, 
-                  sizeof(struct image_optional_header32) - sizeof(magic), 1, file, err_code);
+                  sizeof(struct image_optional_header32) - sizeof(magic), 1, file, err);
       }
             
     }
@@ -396,15 +394,15 @@ void pcr_read_optional_header(struct pcr_file *pfile, FILE *file)
 /**
  * Read and sort section table
  */
-void pcr_read_section_table(struct pcr_file *pfile, FILE *file)
+void pcr_read_section_table(struct pcr_file *pfile, FILE *file, pcr_error_code *err)
 {
-  if (pfile->err_code != PCR_ERROR_NONE)
+  if (PCR_FAILURE(*err))
     return;
   
   uint16_t num_sec = pfile->image_file_header.number_of_sections;
         
-  pfile->section_table = (struct image_section_header *)pcr_malloc(sizeof(struct image_section_header) * num_sec, &pfile->err_code);
-  pcr_fread(pfile->section_table, sizeof(struct image_section_header), num_sec, file, &pfile->err_code);
+  pfile->section_table = (struct image_section_header *)pcr_malloc(sizeof(struct image_section_header) * num_sec, err);
+  pcr_fread(pfile->section_table, sizeof(struct image_section_header), num_sec, file, err);
   
   qsort(pfile->section_table, num_sec, sizeof(struct image_section_header),  
         pcr_comp_image_secion_headers);
@@ -413,18 +411,16 @@ void pcr_read_section_table(struct pcr_file *pfile, FILE *file)
 /**
  * 
  */
-void pcr_read_section_data(struct pcr_file *pfile, FILE *stream)
+void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code *err)
 {
-  if (pfile->err_code != PCR_ERROR_NONE)
+  if (PCR_FAILURE(*err))
     return;
   
   int num_sec, i; 
-  enum pcr_error *err_code;
   
-  err_code = &pfile->err_code;
   num_sec = pfile->image_file_header.number_of_sections;
   
-  pfile->section_data = (char **)pcr_malloc(sizeof(char *) * num_sec, err_code);
+  pfile->section_data = (char **)pcr_malloc(sizeof(char *) * num_sec, err);
   
   for (i=0; i<num_sec; i++)
   {
@@ -436,13 +432,13 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream)
     {
       pfile->section_data[i] = NULL;
       
-      pcr_read_rsrc_section(pfile, stream);
+      pcr_read_rsrc_section(pfile, stream, err);
     }
     else
     { 
-      pfile->section_data[i] = (char *)pcr_malloc(sec->virtual_size, err_code);
+      pfile->section_data[i] = (char *)pcr_malloc(sec->virtual_size, err);
         
-      pcr_fread(pfile->section_data[i], sec->virtual_size, 1, stream, err_code);
+      pcr_fread(pfile->section_data[i], sec->virtual_size, 1, stream, err);
     }
   }
 }
@@ -450,33 +446,30 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream)
 /**
  * 
  */
-void pcr_read_rsrc_section(PCR_FILE *pfile, FILE *file)
+void pcr_read_rsrc_section(PCR_FILE *pfile, FILE *file, pcr_error_code *err)
 {
   pfile->rsrc_section_data = NULL;
  
-  if (pfile->err_code != PCR_ERROR_NONE)
+  if (PCR_FAILURE(*err))
     return;
 
-  enum pcr_error *err_code;
   struct image_section_header *rsrc_header;
   
   rsrc_header = pcr_get_section_header(pfile, SECTION_NAME_RESOURCE);
     
   if (rsrc_header != NULL)
   {
-    err_code = &pfile->err_code;
-  
-    pfile->rsrc_section_data = (struct resource_section_data *)pcr_malloc(sizeof(struct resource_section_data), err_code);
+    pfile->rsrc_section_data = (struct resource_section_data *)pcr_malloc(sizeof(struct resource_section_data), err);
   
     pfile->rsrc_section_data->root_node = 
-      pcr_read_rsrc_tree(file, err_code, ftell(file), 0, RESOURCE_TYPE_UNKNOWN);
+      pcr_read_rsrc_tree(file, err, ftell(file), 0, RESOURCE_TYPE_UNKNOWN);
   }
 }
 
 /**
  * reas a directory table and recoursivly reads its children
  */
-struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, enum pcr_error *err_code, 
+struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_code, 
                        long section_offset, int level, enum resource_type type)
 {
   if (*err_code != PCR_ERROR_NONE)
@@ -912,45 +905,43 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
 /**
  * 
  */
-enum pcr_error pcr_write_file(const char *filename, struct pcr_file *pfile)
+void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code *err)
 {
-  enum pcr_error err_code = PCR_ERROR_NONE;
   FILE *stream = NULL;
   
-  if (pfile == NULL || pfile->err_code != PCR_ERROR_NONE)
-    return PCR_ERROR_WRITE;
+  if (pfile == NULL || PCR_FAILURE(*err))
+    return;
   
   stream = fopen(filename, "wb");
   
   if (stream == NULL)
-    err_code = PCR_ERROR_WRITE;
+    *err = PCR_ERROR_WRITE;
   else
   {
     struct rsrc_section_size rs_size;
-    rs_size = pcr_prepare_rsrc_data(pfile, &err_code);
+    rs_size = pcr_prepare_rsrc_data(pfile, err);
     
     pcr_update_section_table(pfile, rs_size);
     
-    pcr_fwrite(&pfile->dos_header, sizeof(struct image_dos_header), 1, stream, &err_code);
+    pcr_fwrite(&pfile->dos_header, sizeof(struct image_dos_header), 1, stream, err);
     
     unsigned int rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
     
-    pcr_fwrite(pfile->rm_stub, rm_stub_size, 1, stream, &err_code);
-    pcr_fwrite(pfile->signature, sizeof(char), 4, stream, &err_code);
-    pcr_fwrite(&pfile->image_file_header, sizeof(struct image_file_header), 1, stream, &err_code);
+    pcr_fwrite(pfile->rm_stub, rm_stub_size, 1, stream, err);
+    pcr_fwrite(pfile->signature, sizeof(char), 4, stream, err); 
+    pcr_fwrite(&pfile->image_file_header, sizeof(struct image_file_header), 1, stream, err);
     
     if (pfile->image_optional_header32 != NULL)
-      pcr_fwrite(pfile->image_optional_header32, sizeof(struct image_optional_header32), 1, stream, &err_code);
+      pcr_fwrite(pfile->image_optional_header32, sizeof(struct image_optional_header32), 1, stream, err);
     
     pcr_fwrite(pfile->section_table, sizeof(struct image_section_header),
-                pfile->image_file_header.number_of_sections, stream, &err_code);
+                pfile->image_file_header.number_of_sections, stream, err);
       
-    pcr_write_section_data(pfile, stream, &err_code, rs_size);
+    pcr_write_section_data(pfile, stream, err, rs_size);
     
     fclose(stream);
   }
   
-  return err_code;
 }
 
 /**
@@ -1336,7 +1327,7 @@ struct enc_string pcr_get_string(const struct pcr_file *file, uint32_t id, uint3
   if (lang_dir == NULL || lang_dir->resource_data == NULL)
     return string;
       
-  printf("String rva: %d, offset: %d, language id: %d, codepage: %d\n", lang_dir->resource_data->data_entry.data_rva, 
+  printf("String rva: %d, offset: %d, language id: %d, errpage: %d\n", lang_dir->resource_data->data_entry.data_rva, 
          offset, lang_dir->id, lang_dir->resource_data->data_entry.codepage);
 
   if (offset >= lang_dir->resource_data->number_of_strings)

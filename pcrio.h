@@ -91,6 +91,11 @@ enum pcr_error {
   PCR_ERROR_UNSUPPORTED
 };
 
+typedef enum pcr_error pcr_error_code;
+
+#define PCR_SUCCESS(x) (x == PCR_ERROR_NONE)
+#define PCR_FAILURE(x) (x != PCR_ERROR_NONE)
+
 struct image_file_header {
   uint16_t machine;
   uint16_t number_of_sections;
@@ -241,8 +246,6 @@ struct pcr_file {
   
   // other section data
   char **section_data;
-  
-  enum pcr_error err_code;
 };
 
 typedef struct pcr_file PCR_FILE;
@@ -250,10 +253,10 @@ typedef struct pcr_file PCR_FILE;
 /**
  * Get a string describing the error. TODO
  */
-extern const char* pcr_error_message(struct pcr_file *pfile);
+extern const char* pcr_error_message(pcr_error_code err);
 
-extern struct pcr_file *pcr_read_file(const char *filename);
-extern enum pcr_error pcr_write_file(const char *filename, struct pcr_file *pfile);
+extern struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err);
+extern void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code *err);
 
 extern void pcr_free(struct pcr_file *pfile);
 
