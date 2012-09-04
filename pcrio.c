@@ -117,7 +117,7 @@ struct resource_string *pcr_read_string(FILE *file, enum pcr_error *err);
  * pre write functions
  */
 
-struct rsrc_section_size pcr_prepare_rsrc_data(PCR_FILE *pcr_file, enum pcr_error *err_code);
+struct rsrc_section_size pcr_prepare_rsrc_data(struct pcr_file *pcr_file, enum pcr_error *err_code);
 void pcr_prepare_rsrc_node(struct resource_tree_node *node, 
                                enum pcr_error *err_code, struct rsrc_section_size *size);
 
@@ -128,7 +128,7 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node,
 void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream, 
                            enum pcr_error *err, struct rsrc_section_size size);
 
-void pcr_write_rsrc_section(PCR_FILE *pcr_file, FILE *stream, 
+void pcr_write_rsrc_section(struct pcr_file *pcr_file, FILE *stream, 
                            enum pcr_error *err, struct rsrc_section_size size);
 
 void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, 
@@ -446,7 +446,7 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code 
 /**
  * 
  */
-void pcr_read_rsrc_section(PCR_FILE *pfile, FILE *file, pcr_error_code *err)
+void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *err)
 {
   pfile->rsrc_section_data = NULL;
  
@@ -740,7 +740,7 @@ struct resource_string *pcr_read_string(FILE *file, enum pcr_error *err_code)
  * Calculates sizes and updates rvas. Data and name rvas will be relative.
  * They have to be updated on write.
  */
-struct rsrc_section_size pcr_prepare_rsrc_data(PCR_FILE *pcr_file, enum pcr_error *err_code)
+struct rsrc_section_size pcr_prepare_rsrc_data(struct pcr_file *pcr_file, enum pcr_error *err_code)
 {
   struct rsrc_section_size rs_size;
   struct image_section_header *rsrc_header;
