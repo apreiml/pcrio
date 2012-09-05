@@ -55,8 +55,6 @@ enum resource_type {
   RESOURCE_TYPE_VERSION = 16
 };
 
-
-
 struct image_dos_header {  // DOS .EXE header
   uint16_t e_magic;         // Magic number
   uint16_t e_cblp;          // Bytes on last page of file
