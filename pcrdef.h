@@ -140,14 +140,14 @@ struct image_section_header {
 };
 
 
-struct resource_string {
+struct rsrc_string {
   uint16_t size;
   char *str; // is always size + 1, last character is '\0'.
 };
 
 struct enc_string {
   uint32_t codepage;
-  const struct resource_string *string;
+  const struct rsrc_string *string;
 };
 
 struct resource_data_entry {
@@ -166,7 +166,7 @@ struct resource_data {
   char *raw_data;
   
   uint16_t number_of_strings;
-  struct resource_string **strings;
+  struct rsrc_string **strings;
   
   struct resource_data_entry data_entry;
 };
@@ -196,7 +196,7 @@ struct resource_tree_node {
   // either
   uint32_t id;
   // or
-  struct resource_string *name;
+  struct rsrc_string *name;
   
   // contains
   // either subnodes

@@ -56,6 +56,17 @@ typedef enum pcr_error pcr_error_code;
 #define PCR_SUCCESS(x) (x == PCR_ERROR_NONE)
 #define PCR_FAILURE(x) (x != PCR_ERROR_NONE)
 
+
+struct pcr_string_ {
+  const struct rsrc_string *data;
+  
+  uint32_t id;
+  uint32_t culture_id;
+  uint32_t codepage;
+};
+
+typedef struct pcr_string_ pcr_string;
+
 // typedef struct pcr_file PCR_FILE;
 
 /**
@@ -69,10 +80,19 @@ extern void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_err
 extern void pcr_free(struct pcr_file *pfile);
 
 /**
- * Not fully functional! Language parmaeter will be ignored, the first language entry will be 
- * taken instead.
+ * Iterates through the string nodes to get the most common culture id.
+ * 
+ * @return -1 on error or if no data is present.
  */
-extern struct enc_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, uint32_t language);
+extern int32_t pcr_get_default_culture_id(struct pcr_file *pfile);
+
+/**
+ * 
+ * @param culture_id if -1 take the culture with lowest id
+ * 
+ * @return enc_string struct with string = NULL
+ */
+extern struct enc_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t culture_id);
 
 //TODO language api
 /**
