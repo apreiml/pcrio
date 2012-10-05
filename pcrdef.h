@@ -151,10 +151,10 @@ struct enc_string {
 };
 
 struct resource_data_entry {
-  uint32_t data_rva;
+  uint32_t data_rva; // Only important on read and will be overwritten on write
   uint32_t size;
   uint32_t codepage;
-  uint32_t reserved; //must be 0
+  uint32_t reserved; // must be 0
   
 };
 
@@ -192,10 +192,12 @@ struct resource_tree_node {
   // be changed
   struct resource_directory_table directory_table; 
   
+  // Do not touch! Only important on read and will automatically be set on
+  // write.
   struct resource_directory_entry directory_entry;
   
   // contains 
-  // either
+  // either ( if name == NULL)
   uint32_t id;
   // or
   struct rsrc_string *name;

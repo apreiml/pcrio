@@ -86,24 +86,16 @@ extern int32_t pcr_get_default_culture_id(struct pcr_file *pfile);
  * 
  * @param culture_id if -1 take the culture with lowest id //TODO is this necessary?
  * 
- * @return enc_string struct with string = NULL
+ * @return enc_string struct with string = NULL //TODO change to pcr_string!
  */
 extern struct enc_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t culture_id);
 
-//TODO language api
 /**
- * The string needs to be encoded. The codepage can be found in the enc_string struct 
- * given by pcr_get_string.
- * 
- * TODO: language will be ignored for now. First language entry will be taken.
+ * The string needs to be encoded. Creates a new name and/or language node if
+ * one/both of them is/are missing.
  */
-extern pcr_error_code pcr_set_cstring(struct pcr_file *pfile, uint32_t id, uint32_t culture_id, const char *str);
 extern pcr_error_code pcr_set_string(struct pcr_file *pfile, uint32_t id, uint32_t culture_id, const pcr_string str);
 
-
 extern void pcr_debug_info(struct pcr_file *pfile);
-
-
-extern void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_node *child);
 
 #endif // PCRIO_H
