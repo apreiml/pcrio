@@ -1401,9 +1401,9 @@ int32_t pcr_get_default_culture_id(struct pcr_file *pfile)
     uint32_t cnt;
   };
 
-  int32_t default_culture = -1, default_c_cnt = 0;
+  int32_t default_culture = -1; 
   struct culture_cnt *c_counts = NULL, *c_ptr = NULL;
-  uint32_t num_of_c = 0, i, j, k, c_id;
+  uint32_t num_of_c = 0, i, j, k, c_id, default_c_cnt = 0;
   
   struct resource_tree_node *root, *sub;
   
