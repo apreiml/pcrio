@@ -294,6 +294,12 @@ int pcr_comp_id_tree_nodes (const void *a, const void *b)
          (*(struct resource_tree_node **)b)->id;
 }
 
+int pcr_comp_name_tree_nodes (const void *a, const void *b)
+{
+  return strcmp((*(struct resource_tree_node **)a)->name->str, 
+                (*(struct resource_tree_node **)b)->name->str); 
+}
+
 /**
  * 
  */
@@ -1269,7 +1275,7 @@ struct image_section_header * pcr_get_section_header(struct pcr_file *pfile, con
 }
 
 /**
- * returns node or NULL if unable to get it
+ * returns id node or NULL if unable to get it
  */
 struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *node, uint32_t id)
 {
@@ -1282,6 +1288,35 @@ struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *
   
     result = (struct resource_tree_node **)bsearch(&kptr, node->id_entries, node->directory_table.number_of_id_entries, 
                   sizeof(struct resource_tree_node **), pcr_comp_id_tree_nodes);
+  }
+  
+  if (result == NULL)
+    return NULL;
+  else
+    return *result;
+}
+
+/**
+ * returns name node or NULL if unable to get it
+ */
+struct resource_tree_node* pcr_get_sub_name_node(const struct resource_tree_node *node, const char *name)
+{
+  struct resource_tree_node key, *kptr, **result = NULL;
+  pcr_error_code err = PCR_ERROR_NONE;
+  
+  if (node && node->directory_table.number_of_name_entries > 0)
+  {
+    key.name = (struct rsrc_string *)pcr_malloc(sizeof(struct rsrc_string), &err);
+    key.name->str = (char *)pcr_malloc(strlen(name), &err);
+    
+    strcpy(key.name->str, name); 
+    kptr = &key;
+  
+    result = (struct resource_tree_node **)bsearch(&kptr, node->name_entries, node->directory_table.number_of_name_entries, 
+                  sizeof(struct resource_tree_node **), pcr_comp_name_tree_nodes);
+    
+    free(key.name->str);
+    free(key.name);
   }
   
   if (result == NULL)
@@ -1412,6 +1447,28 @@ int32_t pcr_get_default_culture_id(struct pcr_file *pfile)
   return default_culture;
 }
 
+/**
+ * 
+ */
+uint32_t pcr_get_default_codepage(struct pcr_file *pfile, uint32_t culture_id)
+{
+  struct resource_tree_node *version_node = NULL, *lang_node = NULL;
+  uint32_t codepage = 0;
+  
+  if (pfile && pfile->rsrc_section_data && pfile->rsrc_section_data->root_node)
+  {
+    version_node = pcr_get_sub_id_node(pfile->rsrc_section_data->root_node, RESOURCE_TYPE_VERSION);
+    version_node = pcr_get_sub_name_node(version_node, "VS_VERSION_INFO"); // TODO const
+    
+    lang_node = pcr_get_sub_id_node(version_node, culture_id);
+    
+    if (lang_node && lang_node->resource_data)
+      codepage = lang_node->resource_data->data_entry.codepage;
+  }
+  
+  return codepage;
+}
+
 //TODO
 uint32_t pcr_get_rsrc_string_name_node(uint32_t string_id)
 {
@@ -1421,7 +1478,7 @@ uint32_t pcr_get_rsrc_string_name_node(uint32_t string_id)
 //TODO
 uint32_t pcr_get_rsrc_data_string_index(uint32_t string_id)
 {
-//   return string_id - (pcr_get_rsrc_string_directory_id()
+  
   return 0;
 }
 

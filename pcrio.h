@@ -82,7 +82,9 @@ extern void pcr_free(struct pcr_file *pfile);
  */
 extern int32_t pcr_get_default_culture_id(struct pcr_file *pfile);
 
-//TODO
+/**
+ * Looks up the codepage of given culture in the version info.
+ */
 extern uint32_t pcr_get_default_codepage(struct pcr_file *pfile, uint32_t culture_id);
 
 /**
