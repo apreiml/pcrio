@@ -491,23 +491,15 @@ struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_c
     uint16_t num_id_entries, num_name_entries;
     struct resource_directory_entry *name_entries, *id_entries;
     
-    node->directory_table = (struct resource_directory_table *)pcr_malloc(sizeof(struct resource_directory_table), err_code);
-  
     node->name = NULL;
     node->id_entries = NULL;
     node->name_entries = NULL;
     node->resource_data = NULL;
   
-    pcr_fread(node->directory_table, sizeof(struct resource_directory_table), 1, file, err_code);
-  
-    if (node->directory_table == NULL)
-    {
-      free(node);
-      return NULL;
-    }
-    
-    num_id_entries = node->directory_table->number_of_id_entries;
-    num_name_entries = node->directory_table->number_of_name_entries;
+    pcr_fread(&node->directory_table, sizeof(struct resource_directory_table), 1, file, err_code);
+
+    num_id_entries = node->directory_table.number_of_id_entries;
+    num_name_entries = node->directory_table.number_of_name_entries;
   
     name_entries = pcr_read_rsrc_directory_entries(file, num_name_entries, err_code);
     id_entries = pcr_read_rsrc_directory_entries(file, num_id_entries, err_code);
@@ -593,7 +585,14 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset,
     
     if (subtree != NULL)
     {
-      subtree->directory_table = NULL;
+//       subtree->directory_table = NULL;
+      subtree->directory_table.number_of_id_entries = 0;
+      subtree->directory_table.number_of_name_entries = 0;
+      subtree->directory_table.characteristics = 0;
+      subtree->directory_table.major_version = 0;
+      subtree->directory_table.minor_version = 0;
+      subtree->directory_table.time_stamp = 0;
+      
       subtree->id_entries = NULL;
       subtree->name_entries = NULL;
       subtree->name = NULL;
@@ -796,17 +795,17 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
     node->directory_entry.rva = INT32_HIGH_BYTE | size->s_tree;
     
     uint32_t rva_next_node = 0;
-    rva_next_node += node->directory_table->number_of_id_entries;
-    rva_next_node += node->directory_table->number_of_name_entries;
+    rva_next_node += node->directory_table.number_of_id_entries;
+    rva_next_node += node->directory_table.number_of_name_entries;
     rva_next_node *= sizeof(struct resource_directory_entry);
     rva_next_node += sizeof(struct resource_directory_table);
         
     size->s_tree += rva_next_node;
     
-    for (i=0; i<node->directory_table->number_of_name_entries; i++)
+    for (i=0; i<node->directory_table.number_of_name_entries; i++)
       pcr_prepare_rsrc_node(node->name_entries[i], err_code, size); 
     
-    for (i=0; i<node->directory_table->number_of_id_entries; i++)
+    for (i=0; i<node->directory_table.number_of_id_entries; i++)
       pcr_prepare_rsrc_node(node->id_entries[i], err_code, size);
   }
   else // leaf
@@ -1008,11 +1007,11 @@ void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, enum pcr
   if (node->resource_data != NULL)
     return;
   
-  pcr_fwrite(node->directory_table, sizeof(struct resource_directory_table), 1, stream, err_code);
+  pcr_fwrite(&node->directory_table, sizeof(struct resource_directory_table), 1, stream, err_code);
   
   // write directory entries
   
-  for (i=0; i<node->directory_table->number_of_name_entries; i++)
+  for (i=0; i<node->directory_table.number_of_name_entries; i++)
   {
     struct resource_tree_node *subnode = node->name_entries[i];
     
@@ -1026,7 +1025,7 @@ void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, enum pcr
     pcr_fwrite(&subnode->directory_entry, sizeof(struct resource_directory_entry), 1, stream, err_code);
   }
     
-  for (i=0; i<node->directory_table->number_of_id_entries; i++)
+  for (i=0; i<node->directory_table.number_of_id_entries; i++)
   {
     struct resource_tree_node *subnode = node->id_entries[i];
     
@@ -1038,10 +1037,10 @@ void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, enum pcr
    
   // write subnodes
    
-  for (i=0; i<node->directory_table->number_of_name_entries; i++)
+  for (i=0; i<node->directory_table.number_of_name_entries; i++)
     pcr_write_rsrc_node(node->name_entries[i], stream, err_code, size);
     
-  for (i=0; i<node->directory_table->number_of_id_entries; i++)
+  for (i=0; i<node->directory_table.number_of_id_entries; i++)
     pcr_write_rsrc_node(node->id_entries[i], stream, err_code, size);
 }
 
@@ -1063,10 +1062,10 @@ void pcr_write_data_description(struct resource_tree_node *node, FILE *stream, e
   {
     int i=0;
     
-    for (i=0; i<node->directory_table->number_of_name_entries; i++)
+    for (i=0; i<node->directory_table.number_of_name_entries; i++)
       pcr_write_data_description(node->name_entries[i], stream, err_code, size);
     
-    for (i=0; i<node->directory_table->number_of_id_entries; i++)
+    for (i=0; i<node->directory_table.number_of_id_entries; i++)
       pcr_write_data_description(node->id_entries[i], stream, err_code, size);
   }
 }
@@ -1082,16 +1081,13 @@ void pcr_write_directory_strings(struct resource_tree_node *node, FILE *stream, 
     pcr_write_string(node->name, stream, err_code);
   }
   
-  if (node->directory_table != NULL)
-  {
-    int i=0;
+  int i=0;
+  
+  for (i=0; i<node->directory_table.number_of_name_entries; i++)
+    pcr_write_directory_strings(node->name_entries[i], stream, err_code, size);
     
-    for (i=0; i<node->directory_table->number_of_name_entries; i++)
-      pcr_write_directory_strings(node->name_entries[i], stream, err_code, size);
-      
-    for (i=0; i<node->directory_table->number_of_id_entries; i++)
-      pcr_write_directory_strings(node->id_entries[i], stream, err_code, size);
-  }
+  for (i=0; i<node->directory_table.number_of_id_entries; i++)
+    pcr_write_directory_strings(node->id_entries[i], stream, err_code, size);
 }
 
 /**
@@ -1104,16 +1100,12 @@ void pcr_write_rsrc_section_data(struct resource_tree_node *node, FILE *stream, 
     pcr_write_rsrc_data(node->resource_data, stream, err_code);
   }
   
-  if (node->directory_table != NULL)
-  {
-    int i=0;
-    for (i=0; i<node->directory_table->number_of_name_entries; i++)
-      pcr_write_rsrc_section_data(node->name_entries[i], stream, err_code, size);
-      
-    for (i=0; i<node->directory_table->number_of_id_entries; i++)
-      pcr_write_rsrc_section_data(node->id_entries[i], stream, err_code, size);
-  }
-
+  int i=0;
+  for (i=0; i<node->directory_table.number_of_name_entries; i++)
+    pcr_write_rsrc_section_data(node->name_entries[i], stream, err_code, size);
+    
+  for (i=0; i<node->directory_table.number_of_id_entries; i++)
+    pcr_write_rsrc_section_data(node->id_entries[i], stream, err_code, size);
 }
 
 /**
@@ -1199,22 +1191,15 @@ void pcr_free_resource_tree_node(struct resource_tree_node *node)
   if (node == NULL)
     return;
   
+  for (i=0; i<node->directory_table.number_of_name_entries; i++)
+    pcr_free_resource_tree_node(node->name_entries[i]);
   
-  if (node->directory_table != NULL)
-  {
+  free(node->name_entries);
   
-    for (i=0; i<node->directory_table->number_of_name_entries; i++)
-      pcr_free_resource_tree_node(node->name_entries[i]);
-    
-    free(node->name_entries);
-    
-    for (i=0; i<node->directory_table->number_of_id_entries; i++)
-      pcr_free_resource_tree_node(node->id_entries[i]);
-    
-    free(node->id_entries);
-    
-    free(node->directory_table);
-  }
+  for (i=0; i<node->directory_table.number_of_id_entries; i++)
+    pcr_free_resource_tree_node(node->id_entries[i]);
+  
+  free(node->id_entries);
   
   pcr_free_resource_data(node->resource_data);
   
@@ -1278,12 +1263,12 @@ struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *
 {
   struct resource_tree_node key, *kptr, **result = NULL;
 
-  if (node && node->directory_table && node->directory_table->number_of_id_entries > 0)
+  if (node && node->directory_table.number_of_id_entries > 0)
   {
     key.id = id;
     kptr = &key;
   
-    result = (struct resource_tree_node **)bsearch(&kptr, node->id_entries, node->directory_table->number_of_id_entries, 
+    result = (struct resource_tree_node **)bsearch(&kptr, node->id_entries, node->directory_table.number_of_id_entries, 
                   sizeof(struct resource_tree_node **), pcr_comp_id_tree_nodes);
   }
   
@@ -1327,7 +1312,7 @@ void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_nod
       printf("Error: There is already a node with given id!\n");
     else
     {
-      num_id_entries = root->directory_table->number_of_id_entries;
+      num_id_entries = root->directory_table.number_of_id_entries;
       num_id_entries ++;
       
       if (root->id_entries == NULL)
@@ -1341,7 +1326,7 @@ void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_nod
       else
       {
         root->id_entries = id_entries_new;
-        root->directory_table->number_of_id_entries = num_id_entries;
+        root->directory_table.number_of_id_entries = num_id_entries;
         
         printf("NUm id entries %d\n", num_id_entries);
         
@@ -1382,11 +1367,11 @@ int32_t pcr_get_default_culture_id(struct pcr_file *pfile)
   {
     root = pcr_get_sub_id_node(pfile->rsrc_section_data->root_node, RESOURCE_TYPE_STRINGS);
     
-    for (i=0; i<root->directory_table->number_of_id_entries; i++)
+    for (i=0; i<root->directory_table.number_of_id_entries; i++)
     {
       sub = root->id_entries[i];
       
-      for (j=0; j<sub->directory_table->number_of_id_entries; j++)
+      for (j=0; j<sub->directory_table.number_of_id_entries; j++)
       {
         c_id = sub->id_entries[j]->id;
         
@@ -1450,7 +1435,7 @@ struct enc_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32
   {
     if (culture_id == -1)
     {
-      if (name_dir->directory_table->number_of_id_entries > 0)
+      if (name_dir->directory_table.number_of_id_entries > 0)
         lang_dir = name_dir->id_entries[0];
     }
     else
