@@ -65,7 +65,6 @@ struct rsrc_section_size {
   uint32_t section_start_pos;
 };
 
-//TODO: language handling, get/set _string language api
 //TODO: iterator?
 //TODO: IMAGE_SECTION_HEADER.name needs special treatment!
 
@@ -191,7 +190,7 @@ const char* pcr_error_message(pcr_error_code err)
     case PCR_ERROR_UNSUPPORTED: 
       return "Unsupported file (missing functionality)"; break;
     default:
-      return "No error message. :("; break;
+      return "No error message. Did you initialize the error?"; break;
   }
 }
 
@@ -1429,14 +1428,15 @@ uint32_t pcr_get_rsrc_data_string_index(uint32_t string_id)
 /**
  * 
  */
-struct enc_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t culture_id)
+pcr_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t culture_id)
 {
-  struct enc_string string;
-  uint32_t resource_directory_id, offset;
+  pcr_string string;
+  uint32_t resource_directory_id, offset, string_size;
   struct resource_tree_node *name_dir = NULL, *lang_dir = NULL;
+  pcr_error_code err = PCR_ERROR_NONE;
   
   string.codepage = 0;
-  string.string = NULL;
+  string.value = NULL;
   
   // calc ids
   resource_directory_id = id/MAX_STRINGS_PER_LEAF + 1;
@@ -1457,15 +1457,19 @@ struct enc_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32
     if (lang_dir != NULL && lang_dir->resource_data != NULL &&
         offset < lang_dir->resource_data->number_of_strings)
     {
-      string.string = lang_dir->resource_data->strings[offset];
+      string_size = lang_dir->resource_data->strings[offset]->size + 1;
+      
+      string.value = (char *)pcr_malloc(string_size * sizeof(char), &err);
+      strncpy(string.value, lang_dir->resource_data->strings[offset]->str, string_size);
+      
       string.codepage = lang_dir->resource_data->data_entry.codepage;
       
-      printf("Debug: Found String: \"%s\"\n  rva: %d, offset: %d, language id: %d, codepage: %d\n", string.string->str, lang_dir->resource_data->data_entry.data_rva, 
+      printf("Debug: Found String: \"%s\"\n  rva: %d, offset: %d, language id: %d, codepage: %d\n", string.value, lang_dir->resource_data->data_entry.data_rva, 
             offset, lang_dir->id, lang_dir->resource_data->data_entry.codepage);
     }
   }
   
-  if (string.string == NULL)
+  if (string.value == NULL)
     printf("Debug: String not found! Id: %d, culture_id: %d\n", id, culture_id);
   
   return string;

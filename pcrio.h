@@ -78,17 +78,20 @@ extern void pcr_free(struct pcr_file *pfile);
 /**
  * Iterates through the string nodes to get the most common culture id.
  * 
- * @return -1 on error or if no data is present.
+ * @return -1 on error or if no data is present. //TODO or 0??
  */
 extern int32_t pcr_get_default_culture_id(struct pcr_file *pfile);
+
+//TODO
+extern uint32_t pcr_get_default_codepage(struct pcr_file *pfile, uint32_t culture_id);
 
 /**
  * 
  * @param culture_id if -1 take the culture with lowest id //TODO is this necessary?
  * 
- * @return enc_string struct with string = NULL //TODO change to pcr_string!
+ * @return pcr_string with value = NULL
  */
-extern struct enc_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t culture_id);
+extern pcr_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t culture_id);
 
 /**
  * The string needs to be encoded. Creates a new name and/or language node if
