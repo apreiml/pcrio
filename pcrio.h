@@ -53,19 +53,15 @@ enum pcr_error {
 
 typedef enum pcr_error pcr_error_code;
 
+typedef struct pcr_string_ {
+  
+  char *value;
+  uint32_t codepage;  
+  
+} pcr_string;
+
 #define PCR_SUCCESS(x) (x == PCR_ERROR_NONE)
 #define PCR_FAILURE(x) (x != PCR_ERROR_NONE)
-
-
-struct pcr_string_ {
-  const struct rsrc_string *data;
-  
-  uint32_t id;
-  uint32_t culture_id;
-  uint32_t codepage;
-};
-
-typedef struct pcr_string_ pcr_string;
 
 // typedef struct pcr_file PCR_FILE;
 
@@ -88,7 +84,7 @@ extern int32_t pcr_get_default_culture_id(struct pcr_file *pfile);
 
 /**
  * 
- * @param culture_id if -1 take the culture with lowest id
+ * @param culture_id if -1 take the culture with lowest id //TODO is this necessary?
  * 
  * @return enc_string struct with string = NULL
  */
@@ -101,8 +97,13 @@ extern struct enc_string pcr_get_string(const struct pcr_file *pfile, uint32_t i
  * 
  * TODO: language will be ignored for now. First language entry will be taken.
  */
-extern void pcr_set_string(struct pcr_file *pfile, uint32_t id, uint32_t language, const char *str);
+extern pcr_error_code pcr_set_cstring(struct pcr_file *pfile, uint32_t id, uint32_t culture_id, const char *str);
+extern pcr_error_code pcr_set_string(struct pcr_file *pfile, uint32_t id, uint32_t culture_id, const pcr_string str);
+
 
 extern void pcr_debug_info(struct pcr_file *pfile);
+
+
+extern void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_node *child);
 
 #endif // PCRIO_H

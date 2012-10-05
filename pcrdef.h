@@ -188,7 +188,7 @@ struct resource_directory_table {
 // tree in memory:
 struct resource_tree_node {
   
-  struct resource_directory_table *directory_table;
+  struct resource_directory_table *directory_table; //TODO why pointer?
   
   struct resource_directory_entry directory_entry;
   
