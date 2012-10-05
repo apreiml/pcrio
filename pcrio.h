@@ -56,6 +56,7 @@ typedef enum pcr_error pcr_error_code;
 typedef struct pcr_string_ {
   
   char *value;
+  uint32_t size;
   uint32_t codepage;  
   
 } pcr_string;

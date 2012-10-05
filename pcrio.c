@@ -1494,6 +1494,7 @@ pcr_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t cult
   
   string.codepage = 0;
   string.value = NULL;
+  string.size = 0;
   
   // calc ids
   resource_directory_id = id/MAX_STRINGS_PER_LEAF + 1;
@@ -1519,6 +1520,7 @@ pcr_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t cult
       string.value = (char *)pcr_malloc(string_size * sizeof(char), &err);
       strncpy(string.value, lang_dir->resource_data->strings[offset]->str, string_size);
       
+      string.size = string_size;
       string.codepage = lang_dir->resource_data->data_entry.codepage;
       
       printf("Debug: Found String: \"%s\"\n  rva: %d, offset: %d, language id: %d, codepage: %d\n", string.value, lang_dir->resource_data->data_entry.data_rva, 
@@ -1650,7 +1652,7 @@ pcr_error_code pcr_set_string(struct pcr_file *file, uint32_t id, uint32_t cultu
   r_str = lang_dir->resource_data->strings[offset];
   
   
-  uint32_t len = strlen(pstr.value);
+  uint32_t len = pstr.size;
   int32_t len_diff = len - r_str->size;
   
   if (len == 0)
