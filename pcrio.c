@@ -1199,6 +1199,13 @@ void pcr_free(struct pcr_file* pcr_file)
     
 }
 
+extern void pcr_free_string(pcr_string string)
+{
+  free(string.value);
+  string.value = NULL;
+  string.size = 0;
+}
+
 /**
  * 
  */

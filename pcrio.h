@@ -75,6 +75,7 @@ extern struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
 extern void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code *err);
 
 extern void pcr_free(struct pcr_file *pfile);
+extern void pcr_free_string_value(pcr_string string); 
 
 /**
  * Iterates through the string nodes to get the most common culture id.
@@ -92,7 +93,7 @@ extern uint32_t pcr_get_default_codepage(struct pcr_file *pfile, uint32_t cultur
  * 
  * @param culture_id if -1 take the culture with lowest id //TODO is this necessary?
  * 
- * @return pcr_string with value = NULL
+ * @return copy of string or if not found: pcr_string with value = NULL
  */
 extern pcr_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t culture_id);
 
