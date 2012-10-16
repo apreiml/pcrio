@@ -1322,7 +1322,7 @@ struct resource_tree_node* pcr_get_sub_name_node(const struct resource_tree_node
     result = (struct resource_tree_node **)bsearch(&kptr, node->name_entries, node->directory_table.number_of_name_entries, 
                   sizeof(struct resource_tree_node **), pcr_comp_name_tree_nodes);
     
-    free(key.name->str);
+    // free(key.name->str); TODO: this somehow causes a crash in mingw (with AGE)??!?
     free(key.name);
   }
   
