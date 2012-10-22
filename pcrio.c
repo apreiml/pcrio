@@ -332,27 +332,28 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
 {
   FILE *file = NULL;
   struct pcr_file *pfile = NULL;
-  
+  unsigned int rm_stub_size;  
+
   if (PCR_FAILURE(*err))
     return NULL;
-  
-  pfile = (struct pcr_file *) pcr_malloc(sizeof(struct pcr_file), err);
-  
-  pfile->rm_stub = NULL;
-  pfile->image_optional_header32 = NULL;
-  pfile->section_table = NULL;
-  pfile->rsrc_section_data = NULL;
-  pfile->section_data = NULL;
   
   file = fopen(filename, "rb");
   
   if (file == NULL)
-    *err= PCR_ERROR_READ;
+    *err = PCR_ERROR_READ;
   else
   {
+    pfile = (struct pcr_file *) pcr_malloc(sizeof(struct pcr_file), err);
+    
+    pfile->rm_stub = NULL;
+    pfile->image_optional_header32 = NULL;
+    pfile->section_table = NULL;
+    pfile->rsrc_section_data = NULL;
+    pfile->section_data = NULL;
+
     pcr_fread(&pfile->dos_header, sizeof(struct image_dos_header), 1, file, err);
     
-    unsigned int rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
+    rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
     pfile->rm_stub = (char *)pcr_malloc(rm_stub_size, err);
     
     pcr_fread(pfile->rm_stub, rm_stub_size, 1, file, err);    
@@ -731,7 +732,7 @@ struct rsrc_string *pcr_read_string(FILE *file, enum pcr_error *err_code)
     
     for (i=0; i<string->size; i++)
     {
-      pcr_fread(&string->str[i], sizeof(char), 1, file, err_code);
+      pcr_fread((string->str + i), sizeof(char), 1, file, err_code);
       
       // skip 1 byte because strings are stored word aligned
       fseek(file, 1, SEEK_CUR);
@@ -1175,6 +1176,7 @@ void pcr_free(struct pcr_file* pcr_file)
 {
   if (pcr_file)
   {
+    free(pcr_file->rm_stub);
   
     int i;
     for (i=0; i< pcr_file->image_file_header.number_of_sections; i++)
@@ -1190,9 +1192,6 @@ void pcr_free(struct pcr_file* pcr_file)
       pcr_free_resource_tree_node(pcr_file->rsrc_section_data->root_node);
       free(pcr_file->rsrc_section_data);
     }
-    
-    free(pcr_file->rm_stub);
-    
   }
   
   free(pcr_file);
@@ -1450,6 +1449,8 @@ int32_t pcr_get_default_culture_id(struct pcr_file *pfile)
       if (default_c_cnt < c_counts[j].cnt)
         default_culture = c_counts[j].id;
   }
+
+  free(c_counts);
   
   return default_culture;
 }
