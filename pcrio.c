@@ -1524,15 +1524,18 @@ pcr_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t cult
         offset < lang_dir->resource_data->number_of_strings)
     {
       string_size = lang_dir->resource_data->strings[offset]->size + 1;
+     
+      if (string_size > 1)
+      {
+        string.value = (char *)pcr_malloc(string_size * sizeof(char), &err);
+        strncpy(string.value, lang_dir->resource_data->strings[offset]->str, string_size);
       
-      string.value = (char *)pcr_malloc(string_size * sizeof(char), &err);
-      strncpy(string.value, lang_dir->resource_data->strings[offset]->str, string_size);
+        string.size = string_size;
+        string.codepage = lang_dir->resource_data->data_entry.codepage;
       
-      string.size = string_size;
-      string.codepage = lang_dir->resource_data->data_entry.codepage;
-      
-      printf("Debug: Found String: \"%s\"\n  rva: %d, offset: %d, language id: %d, codepage: %d\n", string.value, lang_dir->resource_data->data_entry.data_rva, 
+        printf("Debug: Found String: \"%s\"\n len: %d, rva: %d, offset: %d, language id: %d, codepage: %d\n",string.value, string.size, lang_dir->resource_data->data_entry.data_rva, 
             offset, lang_dir->id, lang_dir->resource_data->data_entry.codepage);
+      }
     }
   }
   
