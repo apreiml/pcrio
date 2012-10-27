@@ -63,6 +63,7 @@ struct rsrc_section_size {
   uint32_t s_data;
   
   uint32_t section_start_pos;
+  int32_t  raw_data_offset;
 };
 
 //TODO: iterator?
@@ -101,9 +102,9 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *file, pcr_error_code *e
 void pcr_read_rsrc_section(struct pcr_file *pcr_file, FILE *file, pcr_error_code *err);
  
 struct resource_tree_node *pcr_read_rsrc_tree(FILE *file, enum pcr_error *err, 
-      long section_offset, int level, enum resource_type type);
+      long section_offset, long raw_data_offset, int level, enum resource_type type);
 
-struct resource_tree_node * pcr_read_sub_tree(FILE *file, enum pcr_error *err, long section_offset,
+struct resource_tree_node * pcr_read_sub_tree(FILE *file, enum pcr_error *err, long section_offset, long raw_data_offset,
                   struct resource_directory_entry *directory_entry, 
                   enum rsrc_node_identifier identified_by, int level, enum resource_type type);              
 
@@ -311,11 +312,17 @@ void pcr_debug_info(struct pcr_file *pfile)
     int i;
     for (i=0; i<pfile->image_file_header.number_of_sections; i++)
     {
-      printf("* Name: %s\n", pfile->section_table[i].name);
-      printf("  Virtual address:  0x%x\n", pfile->section_table[i].virtual_adress);
-      printf("  Virtual size:     0x%x\n", pfile->section_table[i].virtual_size);
-      printf("  Ptr to raw data:  0x%x\n", pfile->section_table[i].pointer_to_raw_data);
-      printf("  Size of raw data: 0x%x\n", pfile->section_table[i].size_of_raw_data);
+      struct image_section_header *hdr = (pfile->section_table + i);
+      printf("* Name: %s\n", hdr->name);
+      printf("  Virtual address:    0x%x\n", hdr->virtual_adress);
+      printf("  Virtual size:       0x%x\n", hdr->virtual_size);
+      printf("  Ptr to raw data:    0x%x\n", hdr->pointer_to_raw_data);
+      printf("  Size of raw data:   0x%x\n", hdr->size_of_raw_data);
+      printf("  Ptr to relocations: 0x%x\n", hdr->pointer_to_relocations);
+      printf("  Num of realocations:0x%x\n", hdr->number_of_relocations);
+      printf("  Ptr to linenumbers: 0x%x\n", hdr->pointer_to_linenumbers);
+      printf("  Num of linenumbers: 0x%x\n", hdr->number_of_linenumbers);
+      printf("  Characteristics:    0x%x\n", hdr->characteristics);
     }
     
     printf("\n");
@@ -356,12 +363,15 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
     rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
     pfile->rm_stub = (char *)pcr_malloc(rm_stub_size, err);
     
+    printf("Debug: Starting to read headers.\n");
     pcr_fread(pfile->rm_stub, rm_stub_size, 1, file, err);    
     pcr_fread(pfile->signature, sizeof(char), 4, file, err);
     pcr_fread(&pfile->image_file_header, sizeof(struct image_file_header), 1, file, err);
     
     pcr_read_optional_header(pfile, file, err);
     pcr_read_section_table(pfile, file, err);
+    
+    printf("Debug: Read section data.\n");
     pcr_read_section_data(pfile, file, err);
     
     fclose(file);
@@ -369,7 +379,6 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
   
   return pfile;
 }
-
 
 /**
  * Allocate and read optional header if available
@@ -441,16 +450,18 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code 
   
   pfile->section_data = (char **)pcr_malloc(sizeof(char *) * num_sec, err);
   
-  for (i=0; i<num_sec; i++)
+  for (i=0; i<num_sec && PCR_SUCCESS(*err); i++)
   {
     struct image_section_header *sec = &pfile->section_table[i];
     
     fseek(stream, sec->pointer_to_raw_data, SEEK_SET);
     
+    printf("Debug: Reading Section \"%s\"", sec->name);
+    
     if (strcmp(SECTION_NAME_RESOURCE, sec->name) == 0)
     {
       pfile->section_data[i] = NULL;
-      
+            
       pcr_read_rsrc_section(pfile, stream, err);
     }
     else
@@ -459,7 +470,13 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code 
         
       pcr_fread(pfile->section_data[i], sec->virtual_size, 1, stream, err);
     }
+    
+    if (PCR_FAILURE(*err))
+      printf(": %s", pcr_error_message(*err));
+    
+    printf("\n");
   }
+  
 }
 
 /**
@@ -480,8 +497,10 @@ void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *e
   {
     pfile->rsrc_section_data = (struct resource_section_data *)pcr_malloc(sizeof(struct resource_section_data), err);
   
+    long raw_data_offset = (long)rsrc_header->pointer_to_raw_data - rsrc_header->virtual_adress;
+      
     pfile->rsrc_section_data->root_node = 
-      pcr_read_rsrc_tree(file, err, ftell(file), 0, RESOURCE_TYPE_UNKNOWN);
+      pcr_read_rsrc_tree(file, err, ftell(file), raw_data_offset, 0, RESOURCE_TYPE_UNKNOWN);
   }
 }
 
@@ -489,7 +508,7 @@ void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *e
  * reas a directory table and recoursivly reads its children
  */
 struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_code, 
-                       long section_offset, int level, enum resource_type type)
+                       long section_offset, long raw_data_offset, int level, enum resource_type type)
 {
   if (*err_code != PCR_ERROR_NONE)
     return NULL;
@@ -531,11 +550,11 @@ struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_c
     
     int i;
     for (i=0; i < num_name_entries; i++)
-      node->name_entries[i] = pcr_read_sub_tree(file, err_code, section_offset, &name_entries[i], 
+      node->name_entries[i] = pcr_read_sub_tree(file, err_code, section_offset, raw_data_offset, &name_entries[i], 
                                                 TREE_NODE_IDENTIFIER_NAME, level, type);
   
     for (i=0; i < num_id_entries; i++)
-      node->id_entries[i] = pcr_read_sub_tree(file, err_code, section_offset, &id_entries[i], 
+      node->id_entries[i] = pcr_read_sub_tree(file, err_code, section_offset, raw_data_offset, &id_entries[i], 
                                               TREE_NODE_IDENTIFIER_ID, level, type);
   
     free(name_entries);
@@ -551,13 +570,13 @@ struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_c
  * subdirectories or leaf data.
  */
 struct resource_tree_node * 
-pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset,
+pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, long raw_data_offset,
                   struct resource_directory_entry *directory_entry, 
                   enum rsrc_node_identifier identified_by, int level, enum resource_type type)
 {
   if (*err_code != PCR_ERROR_NONE)
     return NULL;
-  
+   
   struct resource_tree_node *subtree = NULL;
   uint32_t rva_child;
   
@@ -574,19 +593,24 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset,
     
     fseek(file, section_offset + rva_child, SEEK_SET);
     
-    subtree = pcr_read_rsrc_tree(file, err_code, section_offset, level, type);
+    subtree = pcr_read_rsrc_tree(file, err_code, section_offset, raw_data_offset, level, type);
     
   }
   else // node contains data (leaf)
   {
     struct resource_data_entry data_entry;
     struct resource_data* data = NULL;
+    long data_offset;
     
     fseek(file, section_offset + rva_child, SEEK_SET);
     
+//     printf("Read data_entry at :%d\n" ,section_offset + rva_child);
+    
     pcr_fread(&data_entry, sizeof(struct resource_data_entry), 1, file, err_code);
     
-    fseek(file, data_entry.data_rva, SEEK_SET);
+    data_offset = data_entry.data_rva + raw_data_offset ;
+    fseek(file, data_offset, SEEK_SET); 
+//     printf("Read data at: %d, size: %d\n", data_offset, data_entry.size);
     
     data = pcr_read_rsrc_data(file, err_code, data_entry.size, type);
     
@@ -594,7 +618,7 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset,
       data->data_entry = data_entry;
     
     subtree = (struct resource_tree_node *)pcr_malloc(sizeof(struct resource_tree_node), err_code);
-    
+
     if (subtree != NULL)
     {    
       pcr_init_directory_table(&subtree->directory_table);
@@ -623,6 +647,17 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset,
     else if (identified_by == TREE_NODE_IDENTIFIER_ID) 
     {
       subtree->id = directory_entry->id;
+      
+      /*
+      printf("Debug: Read subtree. Section offset: %d, level %d, id %d", section_offset, level, subtree->id);
+      
+      if (subtree->resource_data)
+      {
+        printf(", codepage: %d", subtree->resource_data->data_entry.codepage);
+        printf("- Should have read data at %d, size: %d", subtree->resource_data->data_entry.data_rva, subtree->resource_data->data_entry.size);
+      }
+      printf("\n");
+      */
     }
     
     subtree->directory_entry = *directory_entry;
@@ -739,6 +774,8 @@ struct rsrc_string *pcr_read_string(FILE *file, enum pcr_error *err_code)
     }
         
     string->str[string->size] = '\0';
+    
+//     printf("Read String: %s\n", string->str);
   }
   
   return string;
@@ -762,15 +799,26 @@ struct rsrc_section_size pcr_prepare_rsrc_data(struct pcr_file *pcr_file, enum p
   rs_size.s_directory_strings = 0;
   rs_size.s_data = 0;
   rs_size.section_start_pos = 0;
+  rs_size.raw_data_offset = 0;
   
   if (*err_code == PCR_ERROR_NONE)
   {
     rsrc_header = pcr_get_section_header(pcr_file, SECTION_NAME_RESOURCE);
     
     if (rsrc_header)
+    {
       rs_size.section_start_pos = rsrc_header->pointer_to_raw_data;
+      
+      rs_size.raw_data_offset = (long)rsrc_header->pointer_to_raw_data - rsrc_header->virtual_adress;
+      
+      pcr_prepare_rsrc_node(pcr_file->rsrc_section_data->root_node, err_code, &rs_size);
+    }
+    else
+    {
+      printf("Debug: Prepare: No resource section header!\n");
+      *err_code = PCR_ERROR_UNSUPPORTED;
+    }
   
-    pcr_prepare_rsrc_node(pcr_file->rsrc_section_data->root_node, err_code, &rs_size);
   }
   
   return rs_size;
@@ -844,34 +892,47 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
 }
 
 /**
- * updates section adress and sizes
+ * updates section adress and sizes TODO virtual and raw pointers and sizes!!
  */
 void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size rs_size)
 {
-  uint32_t i, virtual_rsrc_size, raw_rsrc_size, sec_algin, raw_diff;
+  uint32_t i, virtual_rsrc_size, raw_rsrc_size, file_align, sec_align;
+  int32_t raw_diff, virt_diff;
   struct image_section_header *rsrc_sh;
   
+  // virtual resource size is the actual size
   virtual_rsrc_size = rs_size.s_data + rs_size.s_data_description +
                       rs_size.s_directory_strings + rs_size.s_tree;
                       
-  sec_algin = pfile->image_optional_header32->section_alignment;
+  file_align = pfile->image_optional_header32->file_alignment;
+  sec_align = pfile->image_optional_header32->section_alignment;
   
-  raw_rsrc_size = virtual_rsrc_size / sec_algin * sec_algin;
+  raw_rsrc_size = virtual_rsrc_size;
   
-  if (virtual_rsrc_size % sec_algin > 0)
-    raw_rsrc_size += sec_algin;
+  // raw rsrc size is virtual size aligned to file_alignment
+  if (virtual_rsrc_size % file_align)
+    raw_rsrc_size += file_align - (virtual_rsrc_size % file_align);
   
   printf("\nVirtual size: 0x%x\nRaw Size: 0x%x\n", virtual_rsrc_size, raw_rsrc_size);
   
   rsrc_sh = pcr_get_section_header(pfile, SECTION_NAME_RESOURCE);
   
-  raw_diff = rsrc_sh->size_of_raw_data - raw_rsrc_size;
+  raw_diff = (int32_t)raw_rsrc_size - rsrc_sh->size_of_raw_data;
   
-  printf("Raw diff: 0x%x\n\n", raw_diff);
+  // TODO Refactor (align virtual sizes and subtract for aligned diff)
+  /* 1. old_aligned_size = ...
+   * 2. new_aligned_size = ...
+   * 3. diff = new_aligned_size - old_aligned_size;
+   */
+  virt_diff = (int32_t)(virtual_rsrc_size + (sec_align - virtual_rsrc_size%sec_align))
+                     - (rsrc_sh->virtual_size + (sec_align - rsrc_sh->virtual_size%sec_align));
+  
+  printf("Raw diff: %d\n", raw_diff);
+  printf("TODO: Virt diff: %d, sec_align: %d\n", virt_diff, sec_align);
   
   rsrc_sh->virtual_size = virtual_rsrc_size;
 
-  if (raw_diff != 0)
+  if (raw_diff != 0 || virt_diff != 0)
   {
     uint16_t num_sec;
   
@@ -884,10 +945,13 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
     {
       struct image_section_header *sec = &pfile->section_table[i];
     
-      if (strcmp(SECTION_NAME_RESOURCE, sec->name) != 0 && sec->virtual_adress > rsrc_sh->virtual_adress)
+      if (strcmp(SECTION_NAME_RESOURCE, sec->name) != 0)
       {
-        sec->virtual_adress += raw_diff;
-        sec->pointer_to_raw_data += raw_diff;
+        if (sec->pointer_to_raw_data > rsrc_sh->pointer_to_raw_data)
+          sec->pointer_to_raw_data += raw_diff;
+        
+        if (sec->virtual_adress > rsrc_sh->virtual_adress)
+          sec->virtual_adress += virt_diff;
       }
     }
     
@@ -899,14 +963,8 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
       struct image_data_directory *dir = &pfile->image_optional_header32->data_directory[i];
       
       if (dir->rva > pfile->image_optional_header32->data_directory[DATA_DIRECTORY_ID_RESOURCE].rva)
-      {
-        dir->rva += raw_diff;
-      }
+        dir->rva += virt_diff;
     }
-    
-    // file alignmend
-    if (pfile->image_optional_header32->file_alignment != sec_algin)
-      printf("TODO: File alignmend\n"); //TODO
   }
 }
 
@@ -974,14 +1032,18 @@ void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream,
   {
     sec = &pcr_file->section_table[i];
     
-    printf("Write section %s: rva: 0x%X\n", sec->name, sec->virtual_adress);
-    
     pcr_zero_pad(stream, sec->pointer_to_raw_data, err_code);
+    
+    printf("Write section %s.\n", sec->name);
+    
+    // TODO Debug only!
+    if (sec->pointer_to_raw_data != ftell(stream))
+      printf("Error: Section pointer differs from stream pos!\n");
     
     if (strcmp(SECTION_NAME_RESOURCE, sec->name) == 0)
       pcr_write_rsrc_section(pcr_file, stream, err_code, size);
     else
-      pcr_fwrite(pcr_file->section_data[i], sec->virtual_size, 1, stream, err_code);
+      pcr_fwrite(pcr_file->section_data[i], sec->size_of_raw_data, 1, stream, err_code);
   }
   
   // fill up until size of last section
@@ -1060,7 +1122,7 @@ void pcr_write_data_description(struct resource_tree_node *node, FILE *stream, e
   {
     struct resource_data_entry *entry = &node->resource_data->data_entry;
     
-    entry->data_rva += size.section_start_pos + size.s_tree + size.s_data_description + size.s_directory_strings;
+    entry->data_rva += size.section_start_pos + size.s_tree + size.s_data_description + size.s_directory_strings - size.raw_data_offset;
     
     pcr_fwrite(entry, sizeof(struct resource_data_entry), 1, stream, err_code);
   }
