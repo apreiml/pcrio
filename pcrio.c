@@ -363,7 +363,6 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
     rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
     pfile->rm_stub = (char *)pcr_malloc(rm_stub_size, err);
     
-    printf("Debug: Starting to read headers.\n");
     pcr_fread(pfile->rm_stub, rm_stub_size, 1, file, err);    
     pcr_fread(pfile->signature, sizeof(char), 4, file, err);
     pcr_fread(&pfile->image_file_header, sizeof(struct image_file_header), 1, file, err);
@@ -371,7 +370,6 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
     pcr_read_optional_header(pfile, file, err);
     pcr_read_section_table(pfile, file, err);
     
-    printf("Debug: Read section data.\n");
     pcr_read_section_data(pfile, file, err);
     
     fclose(file);
@@ -456,8 +454,6 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code 
     
     fseek(stream, sec->pointer_to_raw_data, SEEK_SET);
     
-    printf("Debug: Reading Section \"%s\"", sec->name);
-    
     if (strcmp(SECTION_NAME_RESOURCE, sec->name) == 0)
     {
       pfile->section_data[i] = NULL;
@@ -470,11 +466,6 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code 
         
       pcr_fread(pfile->section_data[i], sec->virtual_size, 1, stream, err);
     }
-    
-    if (PCR_FAILURE(*err))
-      printf(": %s", pcr_error_message(*err));
-    
-    printf("\n");
   }
   
 }
