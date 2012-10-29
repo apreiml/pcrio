@@ -67,7 +67,7 @@ typedef struct pcr_string_ {
 // typedef struct pcr_file PCR_FILE;
 
 /**
- * Get a string describing the error. TODO
+ * Get a string describing the error. 
  */
 extern const char* pcr_error_message(pcr_error_code err);
 
@@ -78,16 +78,9 @@ extern void pcr_free(struct pcr_file *pfile);
 extern void pcr_free_string_value(pcr_string string); 
 
 /**
- * Iterates through the string nodes to get the most common culture id.
  * 
- * @return -1 on error or if no data is present. //TODO or 0??
  */
-extern int32_t pcr_get_default_culture_id(struct pcr_file *pfile);
-
-/**
- * Looks up the codepage of given culture in the version info.
- */
-extern uint32_t pcr_get_default_codepage(struct pcr_file *pfile, uint32_t culture_id);
+extern const struct culture_info_array* pcr_get_culture_info(struct pcr_file *pfile);
 
 /**
  * 

@@ -76,6 +76,11 @@ START_TEST (test_pcrio_rw_strings)
   test_check_string(pf, 54518, LANG_EN, "Click to order units to repair a building or boat.");
   test_check_string(pf, 9999, LANG_EN, "test");
   
+  const struct culture_info_array *ci_arr = pcr_get_culture_info(pf);
+  
+  fail_unless(ci_arr->count == 1, NULL);
+  fail_unless(ci_arr->array[0].id == LANG_EN, NULL);
+  
 }
 END_TEST
 

@@ -91,6 +91,7 @@ void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *err);
 
 int pcr_comp_image_secion_headers (const void *a, const void *b);
 int pcr_comp_id_tree_nodes (const void *a, const void *b);
+int pcr_comp_culture_info (const void *a, const void *b);
 
 /*
  * read functions
@@ -102,11 +103,11 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *file, pcr_error_code *e
 void pcr_read_rsrc_section(struct pcr_file *pcr_file, FILE *file, pcr_error_code *err);
  
 struct resource_tree_node *pcr_read_rsrc_tree(FILE *file, enum pcr_error *err, 
-      long section_offset, long raw_data_offset, int level, enum resource_type type);
+      long section_offset, long raw_data_offset, int level, enum resource_type type, struct culture_info_array *cult_info_arr);
 
 struct resource_tree_node * pcr_read_sub_tree(FILE *file, enum pcr_error *err, long section_offset, long raw_data_offset,
                   struct resource_directory_entry *directory_entry, 
-                  enum rsrc_node_identifier identified_by, int level, enum resource_type type);              
+                  enum rsrc_node_identifier identified_by, int level, enum resource_type type, struct culture_info_array *cult_info_arr);              
 
 struct resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, int count, 
                                     enum pcr_error *err);
@@ -168,6 +169,7 @@ void pcr_free_resource_string(struct rsrc_string *str);
  * access functions
  */
 
+void pcr_update_culture_info(struct culture_info_array *cinfo_array, uint32_t culture_id, uint32_t codepage, pcr_error_code *err);
 struct image_section_header * pcr_get_section_header(struct pcr_file *pfile, const char *name);
 struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *node, uint32_t id);
 
@@ -299,6 +301,18 @@ int pcr_comp_name_tree_nodes (const void *a, const void *b)
 {
   return strcmp((*(struct resource_tree_node **)a)->name->str, 
                 (*(struct resource_tree_node **)b)->name->str); 
+}
+
+int pcr_comp_culture_info (const void *a, const void *b)
+{
+  int id_diff = ((struct culture_info *)a)->id -
+                ((struct culture_info *)b)->id; 
+  
+  if (id_diff == 0)
+    return ((struct culture_info *)a)->codepage -
+           ((struct culture_info *)b)->codepage; 
+  else
+    return id_diff;
 }
 
 /**
@@ -487,11 +501,14 @@ void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *e
   if (rsrc_header != NULL)
   {
     pfile->rsrc_section_data = (struct resource_section_data *)pcr_malloc(sizeof(struct resource_section_data), err);
+    
+    pfile->rsrc_section_data->culture_info.array = NULL;
+    pfile->rsrc_section_data->culture_info.count = 0;
   
     long raw_data_offset = (long)rsrc_header->pointer_to_raw_data - rsrc_header->virtual_adress;
       
     pfile->rsrc_section_data->root_node = 
-      pcr_read_rsrc_tree(file, err, ftell(file), raw_data_offset, 0, RESOURCE_TYPE_UNKNOWN);
+      pcr_read_rsrc_tree(file, err, ftell(file), raw_data_offset, 0, RESOURCE_TYPE_UNKNOWN, &pfile->rsrc_section_data->culture_info);
   }
 }
 
@@ -499,7 +516,7 @@ void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *e
  * reas a directory table and recoursivly reads its children
  */
 struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_code, 
-                       long section_offset, long raw_data_offset, int level, enum resource_type type)
+                       long section_offset, long raw_data_offset, int level, enum resource_type type, struct culture_info_array *cult_info_arr)
 {
   if (*err_code != PCR_ERROR_NONE)
     return NULL;
@@ -542,11 +559,11 @@ struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_c
     int i;
     for (i=0; i < num_name_entries; i++)
       node->name_entries[i] = pcr_read_sub_tree(file, err_code, section_offset, raw_data_offset, &name_entries[i], 
-                                                TREE_NODE_IDENTIFIER_NAME, level, type);
+                                                TREE_NODE_IDENTIFIER_NAME, level, type, cult_info_arr);
   
     for (i=0; i < num_id_entries; i++)
       node->id_entries[i] = pcr_read_sub_tree(file, err_code, section_offset, raw_data_offset, &id_entries[i], 
-                                              TREE_NODE_IDENTIFIER_ID, level, type);
+                                              TREE_NODE_IDENTIFIER_ID, level, type, cult_info_arr);
   
     free(name_entries);
     free(id_entries);
@@ -563,7 +580,7 @@ struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_c
 struct resource_tree_node * 
 pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, long raw_data_offset,
                   struct resource_directory_entry *directory_entry, 
-                  enum rsrc_node_identifier identified_by, int level, enum resource_type type)
+                  enum rsrc_node_identifier identified_by, int level, enum resource_type type, struct culture_info_array *cult_info_arr)
 {
   if (*err_code != PCR_ERROR_NONE)
     return NULL;
@@ -584,7 +601,7 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, lon
     
     fseek(file, section_offset + rva_child, SEEK_SET);
     
-    subtree = pcr_read_rsrc_tree(file, err_code, section_offset, raw_data_offset, level, type);
+    subtree = pcr_read_rsrc_tree(file, err_code, section_offset, raw_data_offset, level, type, cult_info_arr);
     
   }
   else // node contains data (leaf)
@@ -606,7 +623,11 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, lon
     data = pcr_read_rsrc_data(file, err_code, data_entry.size, type);
     
     if (data != NULL)
+    {
       data->data_entry = data_entry;
+      
+      pcr_update_culture_info(cult_info_arr, directory_entry->id, data_entry.codepage, err_code);
+    }
     
     subtree = (struct resource_tree_node *)pcr_malloc(sizeof(struct resource_tree_node), err_code);
 
@@ -1242,6 +1263,7 @@ void pcr_free(struct pcr_file* pcr_file)
     
     if (pcr_file->rsrc_section_data)
     {
+      free(pcr_file->rsrc_section_data->culture_info.array);
       pcr_free_resource_tree_node(pcr_file->rsrc_section_data->root_node);
       free(pcr_file->rsrc_section_data);
     }
@@ -1318,6 +1340,33 @@ void pcr_free_resource_string(struct rsrc_string *str)
 /*
  * access functions
  */
+
+void pcr_update_culture_info(struct culture_info_array *cinfo_array, uint32_t culture_id, uint32_t codepage, pcr_error_code *err)
+{
+  struct culture_info key, *ptr = NULL;
+  
+  key.id = culture_id;
+  key.codepage = codepage;
+  key.item_count = 0;
+  
+  ptr = (struct culture_info*)bsearch(&key, cinfo_array->array, cinfo_array->count, 
+                                      sizeof(struct culture_info), pcr_comp_culture_info);
+  
+  if (ptr)
+  {
+    ptr->item_count ++;
+  }
+  else
+  {
+    cinfo_array->array = (struct culture_info *)pcr_realloc(cinfo_array->array, sizeof(struct culture_info), err);
+    
+    cinfo_array->array[cinfo_array->count] = key;
+    cinfo_array->count ++;
+    
+    qsort(cinfo_array->array, cinfo_array->count, sizeof(struct culture_info), pcr_comp_culture_info);
+  }
+    
+}
 
 /**
  * Get section header by name. Returns NULL if not found.
@@ -1453,84 +1502,15 @@ void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_nod
 /**
  * 
  */
-int32_t pcr_get_default_culture_id(struct pcr_file *pfile)
+const struct culture_info_array* pcr_get_culture_info(struct pcr_file *pfile)
 {
-  struct culture_cnt {
-    uint32_t id;
-    uint32_t cnt;
-  };
-
-  int32_t default_culture = -1; 
-  struct culture_cnt *c_counts = NULL, *c_ptr = NULL;
-  uint32_t num_of_c = 0, i, j, k, c_id, default_c_cnt = 0;
-  
-  struct resource_tree_node *root, *sub;
-  
-  if (pfile && 
-      pfile->rsrc_section_data && 
-      pfile->rsrc_section_data->root_node && 
-      pcr_get_sub_id_node(pfile->rsrc_section_data->root_node, RESOURCE_TYPE_STRINGS))
-  {
-    root = pcr_get_sub_id_node(pfile->rsrc_section_data->root_node, RESOURCE_TYPE_STRINGS);
-    
-    for (i=0; i<root->directory_table.number_of_id_entries; i++)
-    {
-      sub = root->id_entries[i];
-      
-      for (j=0; j<sub->directory_table.number_of_id_entries; j++)
-      {
-        c_id = sub->id_entries[j]->id;
-        
-        for (k=0; k<num_of_c; k++)
-          if (c_counts[k].id == c_id)
-            c_ptr = &c_counts[k];
-        
-        if (c_ptr)
-          c_ptr->cnt ++;
-        else // add entry
-        {
-          num_of_c ++;
-          c_counts = (struct culture_cnt *)realloc(c_counts, sizeof(struct culture_cnt) * num_of_c);
-          
-          c_counts[num_of_c - 1].id = c_id;
-          c_counts[num_of_c - 1].cnt = 1;
-        }
-      } 
-    }
-    
-    for (j=0; j<num_of_c; j++)
-      if (default_c_cnt < c_counts[j].cnt)
-        default_culture = c_counts[j].id;
-  }
-
-  free(c_counts);
-  
-  return default_culture;
+  if (pfile && pfile->rsrc_section_data)
+    return &pfile->rsrc_section_data->culture_info;
+  else
+    return NULL;
 }
 
-/**
- * 
- */
-uint32_t pcr_get_default_codepage(struct pcr_file *pfile, uint32_t culture_id)
-{
-  struct resource_tree_node *version_node = NULL, *lang_node = NULL;
-  uint32_t codepage = 0;
-  
-  if (pfile && pfile->rsrc_section_data && pfile->rsrc_section_data->root_node)
-  {
-    version_node = pcr_get_sub_id_node(pfile->rsrc_section_data->root_node, RESOURCE_TYPE_VERSION);
-    version_node = pcr_get_sub_name_node(version_node, "VS_VERSION_INFO"); // TODO const
-    
-    lang_node = pcr_get_sub_id_node(version_node, culture_id);
-    
-    if (lang_node && lang_node->resource_data)
-      codepage = lang_node->resource_data->data_entry.codepage;
-  }
-  
-  return codepage;
-}
-
-//TODO
+//TODO macro?
 uint32_t pcr_get_rsrc_string_name_node(uint32_t string_id)
 {
   return string_id/MAX_STRINGS_PER_LEAF + 1;

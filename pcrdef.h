@@ -145,11 +145,6 @@ struct rsrc_string {
   char *str; // is always size + 1, last character is '\0'.
 };
 
-struct enc_string {
-  uint32_t codepage;
-  const struct rsrc_string *string;
-};
-
 struct resource_data_entry {
   uint32_t data_rva; // Only important on read and will be overwritten on write
   uint32_t size;
@@ -212,8 +207,20 @@ struct resource_tree_node {
   
 };
 
+struct culture_info {
+  uint32_t id;
+  uint32_t codepage;
+  uint32_t item_count;
+};
+
+struct culture_info_array {
+  struct culture_info *array;
+  uint32_t count;
+};
+
 struct resource_section_data {
   struct resource_tree_node *root_node;
+  struct culture_info_array culture_info;
 };
 
 struct pcr_file {
