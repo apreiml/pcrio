@@ -102,6 +102,17 @@ START_TEST (test_pcrio_aok_stress)
     pcr_set_string(pf, index, LANG_EN, str);
   
   pcr_write_file("out_big_aok.dll", pf, &err);
+  pcr_free(pf);
+  
+  pf = test_read_file("out_big_aok.dll", &err);
+  
+  str.value = "";
+  str.size = 0;
+  
+  for (index = 64000; index < 70000; index++)
+    pcr_set_string(pf, index, LANG_EN, str);
+  
+  pcr_write_file("not_so_big_aok.dll", pf, &err);
   
   fail_unless(PCR_SUCCESS(err), NULL);
   

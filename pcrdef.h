@@ -139,12 +139,6 @@ struct image_section_header {
   uint32_t characteristics;
 };
 
-
-struct rsrc_string {
-  uint16_t size;
-  char *str; // is always size + 1, last character is '\0'.
-};
-
 struct resource_data_entry {
   uint32_t data_rva; // Only important on read and will be overwritten on write
   uint32_t size;
@@ -161,7 +155,7 @@ struct resource_data {
   char *raw_data;
   
   uint16_t number_of_strings;
-  struct rsrc_string **strings;
+  char **strings;
   
   struct resource_data_entry data_entry;
 };
@@ -195,7 +189,7 @@ struct resource_tree_node {
   // either ( if name == NULL)
   uint32_t id;
   // or
-  struct rsrc_string *name;
+  char *name;
   
   // contains
   // either subnodes

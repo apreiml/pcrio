@@ -120,7 +120,7 @@ struct resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, in
 struct resource_data* pcr_read_rsrc_data(FILE *file, enum pcr_error *err, uint32_t size, 
                                          enum resource_type type);
 
-struct rsrc_string *pcr_read_string(FILE *file, enum pcr_error *err);
+char *pcr_read_string(FILE *file, enum pcr_error *err);
 
 /*
  * pre write functions
@@ -153,7 +153,7 @@ void pcr_write_rsrc_section_data(struct resource_tree_node *node, FILE *stream,
                           enum pcr_error *err_code, struct rsrc_section_size size);
 
 
-void pcr_write_string(struct rsrc_string *str, FILE *stream, enum pcr_error *err_code);
+void pcr_write_string(char *str, FILE *stream, enum pcr_error *err_code);
 void pcr_write_rsrc_data(struct resource_data *str, FILE *stream, enum pcr_error *err_code);
 
 /*
@@ -168,7 +168,6 @@ void pcr_init_directory_table(struct resource_directory_table *table_ptr);
 
 void pcr_free_resource_tree_node(struct resource_tree_node *node);
 void pcr_free_resource_data(struct resource_data *resource_data);
-void pcr_free_resource_string(struct rsrc_string *str);
 
 /*
  * access functions
@@ -315,8 +314,8 @@ int pcr_comp_id_tree_nodes (const void *a, const void *b)
 
 int pcr_comp_name_tree_nodes (const void *a, const void *b)
 {
-  return strcmp((*(struct resource_tree_node **)a)->name->str, 
-                (*(struct resource_tree_node **)b)->name->str); 
+  return strcmp((*(struct resource_tree_node **)a)->name, 
+                (*(struct resource_tree_node **)b)->name); 
 }
 
 int pcr_comp_culture_info (const void *a, const void *b)
@@ -329,33 +328,6 @@ int pcr_comp_culture_info (const void *a, const void *b)
            ((struct culture_info *)b)->codepage; 
   else
     return id_diff;
-}
-
-/**
- * 
- */
-void pcr_debug_info(struct pcr_file *pfile)
-{
-        
-    printf("\nSection table: \n");
-    
-    int i;
-    for (i=0; i<pfile->image_file_header.number_of_sections; i++)
-    {
-      struct image_section_header *hdr = (pfile->section_table + i);
-      printf("* Name: %s\n", hdr->name);
-      printf("  Virtual address:    0x%x\n", hdr->virtual_adress);
-      printf("  Virtual size:       0x%x\n", hdr->virtual_size);
-      printf("  Ptr to raw data:    0x%x\n", hdr->pointer_to_raw_data);
-      printf("  Size of raw data:   0x%x\n", hdr->size_of_raw_data);
-      printf("  Ptr to relocations: 0x%x\n", hdr->pointer_to_relocations);
-      printf("  Num of realocations:0x%x\n", hdr->number_of_relocations);
-      printf("  Ptr to linenumbers: 0x%x\n", hdr->pointer_to_linenumbers);
-      printf("  Num of linenumbers: 0x%x\n", hdr->number_of_linenumbers);
-      printf("  Characteristics:    0x%x\n", hdr->characteristics);
-    }
-    
-    printf("\n");
 }
 
 /*
@@ -675,17 +647,6 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, lon
     else if (identified_by == TREE_NODE_IDENTIFIER_ID) 
     {
       subtree->id = directory_entry->id;
-      
-      /*
-      printf("Debug: Read subtree. Section offset: %d, level %d, id %d", section_offset, level, subtree->id);
-      
-      if (subtree->resource_data)
-      {
-        printf(", codepage: %d", subtree->resource_data->data_entry.codepage);
-        printf("- Should have read data at %d, size: %d", subtree->resource_data->data_entry.data_rva, subtree->resource_data->data_entry.size);
-      }
-      printf("\n");
-      */
     }
     
     subtree->directory_entry = *directory_entry;
@@ -723,21 +684,20 @@ struct resource_data *pcr_read_rsrc_data(FILE *file, enum pcr_error *err_code,
   if (size > 0 && *err_code == PCR_ERROR_NONE)
   {
     char *raw_data = NULL;
-    struct rsrc_string **strings = NULL;
+    char **strings = NULL;
     uint16_t string_count = 0; 
     int i;
     
     if (type == RESOURCE_TYPE_STRINGS)
     {
       // placeholder for realloc error handling
-      struct rsrc_string **re_strings = NULL; 
+      char **re_strings = NULL; 
       
       uint32_t area_start_pos = ftell(file);
       
       while (ftell(file) < (area_start_pos + size))
       {
-        re_strings = (struct rsrc_string **)pcr_realloc(strings, 
-                      sizeof(struct rsrc_string *) * (string_count+1), err_code); 
+        re_strings = (char **)pcr_realloc(strings, sizeof(char *) * (string_count+1), err_code); 
           
         if (*err_code != PCR_ERROR_NONE)
           break;
@@ -752,7 +712,7 @@ struct resource_data *pcr_read_rsrc_data(FILE *file, enum pcr_error *err_code,
       if (*err_code != PCR_ERROR_NONE)
       {
         for (i=0; i<string_count; i++)
-          pcr_free_resource_string(strings[i]);
+          free(strings[i]);
           
         free(strings);
       }
@@ -781,29 +741,27 @@ struct resource_data *pcr_read_rsrc_data(FILE *file, enum pcr_error *err_code,
  * Reads a single string from stream. Strings are stored word aligned. 
  * Read strings are finished with \0.
  */
-struct rsrc_string *pcr_read_string(FILE *file, enum pcr_error *err_code)
+char *pcr_read_string(FILE *file, enum pcr_error *err_code)
 {
-  struct rsrc_string *string = (struct rsrc_string *)
-      pcr_malloc(sizeof(struct rsrc_string), err_code);
+  char *string;
+  uint16_t size;
   
-  pcr_fread(&string->size, sizeof(uint16_t), 1, file, err_code);
-  string->str = (char *)pcr_malloc(sizeof(char) * (string->size+1), err_code);
+  pcr_fread(&size, sizeof(uint16_t), 1, file, err_code);
+  string = (char *)pcr_malloc(sizeof(char) * (size+1), err_code);
       
   if (*err_code == PCR_ERROR_NONE)
   {
     int i;
     
-    for (i=0; i<string->size; i++)
+    for (i=0; i<size; i++)
     {
-      pcr_fread((string->str + i), sizeof(char), 1, file, err_code);
+      pcr_fread((string + i), sizeof(char), 1, file, err_code);
       
       // skip 1 byte because strings are stored word aligned
       fseek(file, 1, SEEK_CUR);
     }
         
-    string->str[string->size] = '\0';
-    
-//     printf("Read String: %s\n", string->str);
+    string[size] = '\0';
   }
   
   return string;
@@ -868,7 +826,7 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
   {
     node->directory_entry.id = size->s_directory_strings; 
     
-    size->s_directory_strings += node->name->size * 2 + sizeof(uint16_t);
+    size->s_directory_strings += strlen(node->name) * 2 + sizeof(uint16_t);
   }
   
   if (node->resource_data == NULL) // node
@@ -901,7 +859,7 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
       uint32_t act_size = 0;
       for(i=0; i<node->resource_data->number_of_strings; i++)
       {
-        act_size += node->resource_data->strings[i]->size *2;
+        act_size += strlen(node->resource_data->strings[i]) *2;
         act_size += 2;
       }
         
@@ -1070,8 +1028,6 @@ void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream,
     
     pcr_zero_pad(stream, sec->pointer_to_raw_data, err_code);
     
-    printf("Write section %s.\n", sec->name);
-    
     // TODO Debug only!
     if (sec->pointer_to_raw_data != ftell(stream))
       printf("Error: Section pointer differs from stream pos!\n");
@@ -1235,16 +1191,17 @@ void pcr_write_rsrc_data(struct resource_data *str, FILE *stream, enum pcr_error
 /**
  * 
  */
-void pcr_write_string(struct rsrc_string *str, FILE *stream, enum pcr_error *err_code)
+void pcr_write_string(char *str, FILE *stream, enum pcr_error *err_code)
 {
   int i;
   char null = 0;
+  uint16_t size = strlen(str);
   
-  pcr_fwrite(&str->size, sizeof(uint16_t), 1, stream, err_code);
+  pcr_fwrite(&size, sizeof(uint16_t), 1, stream, err_code);
   
-  for (i=0; i<str->size; i++)
+  for (i=0; i<size; i++)
   {
-    pcr_fwrite(&str->str[i], sizeof(char), 1, stream, err_code);
+    pcr_fwrite(&str[i], sizeof(char), 1, stream, err_code);
     pcr_fwrite(&null, sizeof(char), 1, stream, err_code);
   }
 }
@@ -1326,7 +1283,7 @@ void pcr_free_resource_tree_node(struct resource_tree_node *node)
   
   pcr_free_resource_data(node->resource_data);
   
-  pcr_free_resource_string(node->name);
+  free(node->name);
   
   free(node);
   
@@ -1341,23 +1298,11 @@ void pcr_free_resource_data(struct resource_data *resource_data)
   {
     int i;
     for (i=0; i<resource_data->number_of_strings; i++)
-       pcr_free_resource_string(resource_data->strings[i]);
+       free(resource_data->strings[i]);
     
     free(resource_data->strings);
     free(resource_data->raw_data);
     free(resource_data);
-  }
-}
-
-/**
- * 
- */
-void pcr_free_resource_string(struct rsrc_string *str)
-{
-  if (str != NULL)
-  {
-    free(str->str);
-    free(str);
   }
 }
 
@@ -1438,16 +1383,14 @@ struct resource_tree_node* pcr_get_sub_name_node(const struct resource_tree_node
   
   if (node && node->directory_table.number_of_name_entries > 0)
   {
-    key.name = (struct rsrc_string *)pcr_malloc(sizeof(struct rsrc_string), &err);
-    key.name->str = (char *)pcr_malloc(strlen(name), &err);
+    key.name = (char *)pcr_malloc(strlen(name), &err);
     
-    strcpy(key.name->str, name); 
+    strcpy(key.name, name); 
     kptr = &key;
   
     result = (struct resource_tree_node **)bsearch(&kptr, node->name_entries, node->directory_table.number_of_name_entries, 
                   sizeof(struct resource_tree_node **), pcr_comp_name_tree_nodes);
     
-    // free(key.name->str); TODO: this somehow causes a crash in mingw (with AGE)??!?
     free(key.name);
   }
   
@@ -1580,12 +1523,12 @@ pcr_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t cult
     if (lang_dir != NULL && lang_dir->resource_data != NULL &&
         offset < lang_dir->resource_data->number_of_strings)
     {
-      string_size = lang_dir->resource_data->strings[offset]->size + 1;
+      string_size = strlen(lang_dir->resource_data->strings[offset]) + 1;
      
       if (string_size > 1)
       {
         string.value = (char *)pcr_malloc(string_size * sizeof(char), &err);
-        strncpy(string.value, lang_dir->resource_data->strings[offset]->str, string_size);
+        strncpy(string.value, lang_dir->resource_data->strings[offset], string_size);
       
         string.size = string_size;
         string.codepage = lang_dir->resource_data->data_entry.codepage;
@@ -1692,14 +1635,12 @@ pcr_error_code pcr_set_string(struct pcr_file *file, uint32_t id, uint32_t cultu
     resource_data->data_entry.size = MAX_STRINGS_PER_LEAF * 2; // sizeof(strings[i].size) * string count
   
     // create empty strings until offset is reached
-    resource_data->strings = (struct rsrc_string **)pcr_malloc(sizeof(struct rsrc_string *) * MAX_STRINGS_PER_LEAF, &err);
+    resource_data->strings = (char **)pcr_malloc(sizeof(char *) * MAX_STRINGS_PER_LEAF, &err);
     
     for (i=0; i<MAX_STRINGS_PER_LEAF; i++)
     {
-      resource_data->strings[i] = (struct rsrc_string *)pcr_malloc(sizeof(struct rsrc_string), &err);
-      resource_data->strings[i]->size = 0;
-      resource_data->strings[i]->str = (char *)pcr_malloc(sizeof(char), &err);
-      resource_data->strings[i]->str[0] = '\0';
+      resource_data->strings[i] = (char *)pcr_malloc(sizeof(char), &err);
+      resource_data->strings[i][0] = '\0';
     }
     
     resource_data->number_of_strings = MAX_STRINGS_PER_LEAF;
@@ -1715,32 +1656,31 @@ pcr_error_code pcr_set_string(struct pcr_file *file, uint32_t id, uint32_t cultu
     
   
   // TODO refactor
-  struct rsrc_string *r_str = NULL;
+  char *r_str = NULL;
   
   r_str = lang_dir->resource_data->strings[offset];
   
   
   uint32_t len = pstr.size;
-  int32_t len_diff = len - r_str->size;
+  int32_t len_diff = len - strlen(r_str);
   
   if (len == 0)
   {
-    free(r_str->str);
+    free(r_str);
     
-    r_str->str = (char *)pcr_malloc(1, &err);
-    r_str->str[0] = '\0';
+    r_str = (char *)pcr_malloc(1, &err);
+    r_str[0] = '\0';
   }
   else
   {
-    if (r_str->str == NULL)
-      r_str->str = (char *)pcr_malloc(len + 1, &err);
+    if (r_str == NULL)
+      r_str = (char *)pcr_malloc(len + 1, &err);
     else
-      r_str->str = (char *)pcr_realloc(r_str->str, len + 1, &err); //TODO error!!
+      r_str = (char *)pcr_realloc(r_str, len + 1, &err); //TODO error!!
       
-    strcpy(r_str->str, pstr.value);
+    strcpy(r_str, pstr.value);
   }
   
-  r_str->size = len;
   lang_dir->resource_data->data_entry.size += (len_diff*2); // *2 word alignmend
   
   return err;

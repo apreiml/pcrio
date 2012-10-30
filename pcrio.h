@@ -96,6 +96,17 @@ extern pcr_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int3
  */
 extern pcr_error_code pcr_set_string(struct pcr_file *pfile, uint32_t id, uint32_t culture_id, const pcr_string str);
 
-extern void pcr_debug_info(struct pcr_file *pfile);
+// TODO new string api
+
+extern const struct culture_info * pcr_get_default_culture(const struct pcr_file *pfile);
+extern void pcr_set_default_culture(struct pcr_file *pf, struct culture_info cult_inf);
+  
+extern uint32_t pcr_get_string_size (struct pcr_file *pf, uint32_t id);
+extern uint32_t pcr_get_string_sizeC (struct pcr_file *pf, uint32_t id, uint32_t culture_id);
+    
+/// return number of characters read
+// extern uint32_t pcr_get_string (const struct pcr_file *pf, uint32_t id, char *buff, uint32_t buff_size);  // set default culture
+extern uint32_t pcr_get_stringC (const struct pcr_file *pf, uint32_t id, uint32_t culture_id, char *buff, uint32_t buff_size);
+
 
 #endif // PCRIO_H
