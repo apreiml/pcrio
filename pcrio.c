@@ -50,6 +50,9 @@
 
 #define SECTION_NAME_RESOURCE ".rsrc"
 
+#define IMAGE_SCN_CNT_INITIALIZED_DATA       0x00000040  // Section contains initialized data.
+
+
 enum rsrc_node_identifier {
   TREE_NODE_IDENTIFIER_ID = 0,
   TREE_NODE_IDENTIFIER_NAME = 1
@@ -84,6 +87,8 @@ void pcr_fread(void *ptr, size_t size, size_t nmemb, FILE *stream, enum pcr_erro
 void pcr_fwrite(const void*ptr, size_t size, size_t nmemb, FILE *stream, enum pcr_error *err);
 
 void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *err);
+
+uint32_t pcr_align(uint32_t number, uint32_t align);
 
 /*
  * compare functions
@@ -273,6 +278,17 @@ void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *err)
   
   if (ftell(stream) == -1)
     *err = PCR_ERROR_WRITE;
+}
+
+/**
+ * Align an unsigned int
+ */
+uint32_t pcr_align(uint32_t number, uint32_t align)
+{
+  if (number % align != 0)
+    number += align - (number % align);
+  
+  return number;
 }
 
 /*
@@ -904,13 +920,15 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
 }
 
 /**
- * updates section adress and sizes TODO virtual and raw pointers and sizes!!
+ * updates section adress and sizes
  */
 void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size rs_size)
 {
   uint32_t i, virtual_rsrc_size, raw_rsrc_size, file_align, sec_align;
   int32_t raw_diff, virt_diff;
   struct image_section_header *rsrc_sh;
+  
+  rsrc_sh = pcr_get_section_header(pfile, SECTION_NAME_RESOURCE);
   
   // virtual resource size is the actual size
   virtual_rsrc_size = rs_size.s_data + rs_size.s_data_description +
@@ -919,25 +937,17 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
   file_align = pfile->image_optional_header32->file_alignment;
   sec_align = pfile->image_optional_header32->section_alignment;
   
-  raw_rsrc_size = virtual_rsrc_size;
+  raw_rsrc_size = pcr_align(virtual_rsrc_size, file_align);
   
-  // raw rsrc size is virtual size aligned to file_alignment
-  if (virtual_rsrc_size % file_align)
-    raw_rsrc_size += file_align - (virtual_rsrc_size % file_align);
-  
+  printf("Old virt size: 0x%x, raw size: 0x%x\n", rsrc_sh->virtual_size, rsrc_sh->size_of_raw_data); 
   printf("\nVirtual size: 0x%x\nRaw Size: 0x%x\n", virtual_rsrc_size, raw_rsrc_size);
   
-  rsrc_sh = pcr_get_section_header(pfile, SECTION_NAME_RESOURCE);
   
   raw_diff = (int32_t)raw_rsrc_size - rsrc_sh->size_of_raw_data;
   
-  // TODO Refactor (align virtual sizes and subtract for aligned diff)
-  /* 1. old_aligned_size = ...
-   * 2. new_aligned_size = ...
-   * 3. diff = new_aligned_size - old_aligned_size;
-   */
-  virt_diff = (int32_t)(virtual_rsrc_size + (sec_align - virtual_rsrc_size%sec_align))
-                     - (rsrc_sh->virtual_size + (sec_align - rsrc_sh->virtual_size%sec_align));
+  virt_diff = (int32_t)pcr_align(virtual_rsrc_size, sec_align) - pcr_align(rsrc_sh->virtual_size, sec_align);
+  
+  printf("New virt (aligned): %d, Old virt (aligned): %d\n", pcr_align(virtual_rsrc_size, sec_align), pcr_align(rsrc_sh->virtual_size, sec_align));
   
   printf("Raw diff: %d\n", raw_diff);
   printf("TODO: Virt diff: %d, sec_align: %d\n", virt_diff, sec_align);
@@ -947,6 +957,7 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
   if (raw_diff != 0 || virt_diff != 0)
   {
     uint16_t num_sec;
+    uint32_t size_of_initialized_data = 0;
   
     rsrc_sh->size_of_raw_data = raw_rsrc_size;
     
@@ -965,17 +976,30 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
         if (sec->virtual_adress > rsrc_sh->virtual_adress)
           sec->virtual_adress += virt_diff;
       }
+      
+      if ((sec->characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA) == IMAGE_SCN_CNT_INITIALIZED_DATA)
+      {
+        size_of_initialized_data += sec->size_of_raw_data;
+      }
     }
     
+    printf("Debug: Size of initialized data: %d\n", size_of_initialized_data);
+    
+    // update header TODO move to an extra function
+    pfile->image_optional_header32->size_of_initialized_data = size_of_initialized_data;
+    pfile->image_optional_header32->size_of_image += raw_diff;
+    
     // update data directory
-    pfile->image_optional_header32->data_directory[DATA_DIRECTORY_ID_RESOURCE].size = raw_rsrc_size;
+    pfile->image_optional_header32->data_directory[DATA_DIRECTORY_ID_RESOURCE].size = virtual_rsrc_size;
     
     for (i=0; i<DATA_DIRECTORY_COUNT; i++)
     {
       struct image_data_directory *dir = &pfile->image_optional_header32->data_directory[i];
       
       if (dir->rva > pfile->image_optional_header32->data_directory[DATA_DIRECTORY_ID_RESOURCE].rva)
+      {
         dir->rva += virt_diff;
+      }
     }
   }
 }

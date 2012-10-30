@@ -6,6 +6,7 @@
 #define LANG_EN 1033
 
 #define L_AOE "lang/aoe/language.dll"
+#define L_AOK "lang/aok/language.dll"
 
 struct pcr_file * test_read_file(const char *filename, pcr_error_code *err)
 {
@@ -42,7 +43,7 @@ void test_read_only(const char *filename)
 START_TEST (test_pcrio_read)
 {
   test_read_only(L_AOE);
-  test_read_only("lang/aok/language.dll");
+  test_read_only(L_AOK);
   test_read_only("lang/aok/language_x1.dll");
   test_read_only("lang/aok/language_x1_p1.dll");
   test_read_only("lang/sw/language.dll");
@@ -84,6 +85,29 @@ START_TEST (test_pcrio_rw_strings)
 }
 END_TEST
 
+START_TEST (test_pcrio_aok_stress)
+{
+  pcr_error_code err = PCR_ERROR_NONE;
+  struct pcr_file *pf = NULL;
+  
+  pf = test_read_file(L_AOK, &err);
+  
+  uint32_t index = 64000;
+  pcr_string str;
+  str.codepage = 0;
+  str.value = "testtesttest";
+  str.size = strlen(str.value);
+  
+  for (; index < 70000; index++)
+    pcr_set_string(pf, index, LANG_EN, str);
+  
+  pcr_write_file("out_big_aok.dll", pf, &err);
+  
+  fail_unless(PCR_SUCCESS(err), NULL);
+  
+}
+END_TEST
+
 Suite * pcrio_suite (void)
 {
   Suite *s = suite_create ("pcrio");
@@ -91,6 +115,7 @@ Suite * pcrio_suite (void)
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_pcrio_read);
   tcase_add_test(tc_core, test_pcrio_rw_strings);
+  tcase_add_test(tc_core, test_pcrio_aok_stress);
   suite_add_tcase(s, tc_core);
 
   return s;

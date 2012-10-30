@@ -8,6 +8,7 @@ project(pecoffresourcelib)
 add_definitions(-Wall)
 
 #add_executable(pecoffresourcelib main.c pcrio.c )
+#add_executable(debug_info debug_info.c pcrio.c)
 
 add_subdirectory(tests)
 
