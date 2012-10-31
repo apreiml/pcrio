@@ -215,6 +215,7 @@ struct culture_info_array {
 struct resource_section_data {
   struct resource_tree_node *root_node;
   struct culture_info_array culture_info;
+  struct culture_info *default_culture;
 };
 
 struct pcr_file {

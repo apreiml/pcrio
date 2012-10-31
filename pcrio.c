@@ -488,15 +488,28 @@ void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *e
     
   if (rsrc_header != NULL)
   {
+    struct culture_info_array *cinfo = NULL;
+
     pfile->rsrc_section_data = (struct resource_section_data *)pcr_malloc(sizeof(struct resource_section_data), err);
     
-    pfile->rsrc_section_data->culture_info.array = NULL;
-    pfile->rsrc_section_data->culture_info.count = 0;
+    cinfo = &pfile->rsrc_section_data->culture_info;
+
+    cinfo->array = NULL;
+    cinfo->count = 0;
+    pfile->rsrc_section_data->default_culture = NULL;
   
     long raw_data_offset = (long)rsrc_header->pointer_to_raw_data - rsrc_header->virtual_adress;
       
     pfile->rsrc_section_data->root_node = 
-      pcr_read_rsrc_tree(file, err, ftell(file), raw_data_offset, 0, RESOURCE_TYPE_UNKNOWN, &pfile->rsrc_section_data->culture_info);
+      pcr_read_rsrc_tree(file, err, ftell(file), raw_data_offset, 0, RESOURCE_TYPE_UNKNOWN, cinfo); 
+
+    if (cinfo->count == 1)
+    {
+      printf("Setting default culture to %d\n", cinfo->array[0].id);
+
+      pfile->rsrc_section_data->default_culture = &cinfo->array[0];
+    }
+
   }
 }
 
@@ -1464,6 +1477,14 @@ void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_nod
   {
     printf("Warning: Adding named nodes is not supported yet!\n"); //TODO
   }
+}
+
+/**
+ *
+ */
+const struct culture_info *pcr_get_default_culture(const struct pcr_file *pfile)
+{
+  return pfile->rsrc_section_data->default_culture;
 }
 
 /**
