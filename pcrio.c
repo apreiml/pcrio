@@ -180,7 +180,7 @@ void pcr_free_resource_data(struct resource_data *resource_data);
  * access functions
  */
 
-void pcr_update_language_info(struct language_info_array *cinfo_array, uint32_t language_id, uint32_t codepage, pcr_error_code *err);
+void pcr_update_language_info(struct language_info_array *lang_info_array, uint32_t language_id, uint32_t codepage, pcr_error_code *err);
 struct image_section_header * pcr_get_section_header(struct pcr_file *pfile, const char *name);
 struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *node, uint32_t id);
 
@@ -495,26 +495,26 @@ void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *e
     
   if (rsrc_header != NULL)
   {
-    struct language_info_array *cinfo = NULL;
+    struct language_info_array *lang_info = NULL;
 
     pfile->rsrc_section_data = (struct resource_section_data *)pcr_malloc(sizeof(struct resource_section_data), err);
     
-    cinfo = &pfile->rsrc_section_data->language_info;
+    lang_info = &pfile->rsrc_section_data->language_info;
 
-    cinfo->array = NULL;
-    cinfo->count = 0;
+    lang_info->array = NULL;
+    lang_info->count = 0;
     pfile->rsrc_section_data->default_language = NULL;
   
     long raw_data_offset = (long)rsrc_header->pointer_to_raw_data - rsrc_header->virtual_adress;
       
     pfile->rsrc_section_data->root_node = 
-      pcr_read_rsrc_tree(file, err, ftell(file), raw_data_offset, 0, RESOURCE_TYPE_UNKNOWN, cinfo); 
+      pcr_read_rsrc_tree(file, err, ftell(file), raw_data_offset, 0, RESOURCE_TYPE_UNKNOWN, lang_info); 
 
-    if (cinfo->count == 1)
+    if (lang_info->count == 1)
     {
-      printf("Setting default culture to %d\n", cinfo->array[0].id);
+      printf("Setting default culture to %d\n", lang_info->array[0].id);
 
-      pfile->rsrc_section_data->default_language = &cinfo->array[0];
+      pfile->rsrc_section_data->default_language = &lang_info->array[0];
     }
 
   }
@@ -1330,7 +1330,7 @@ void pcr_free_resource_data(struct resource_data *resource_data)
  * access functions
  */
 
-void pcr_update_language_info(struct language_info_array *cinfo_array, uint32_t language_id, uint32_t codepage, pcr_error_code *err)
+void pcr_update_language_info(struct language_info_array *lang_info_array, uint32_t language_id, uint32_t codepage, pcr_error_code *err)
 {
   struct language_info key, *ptr = NULL;
   
@@ -1338,7 +1338,7 @@ void pcr_update_language_info(struct language_info_array *cinfo_array, uint32_t 
   key.codepage = codepage;
   key.item_count = 0;
   
-  ptr = (struct language_info*)bsearch(&key, cinfo_array->array, cinfo_array->count, 
+  ptr = (struct language_info*)bsearch(&key, lang_info_array->array, lang_info_array->count, 
                                       sizeof(struct language_info), pcr_comp_language_info);
   
   if (ptr)
@@ -1347,12 +1347,12 @@ void pcr_update_language_info(struct language_info_array *cinfo_array, uint32_t 
   }
   else
   {
-    cinfo_array->array = (struct language_info *)pcr_realloc(cinfo_array->array, sizeof(struct language_info), err);
+    lang_info_array->array = (struct language_info *)pcr_realloc(lang_info_array->array, sizeof(struct language_info), err);
     
-    cinfo_array->array[cinfo_array->count] = key;
-    cinfo_array->count ++;
+    lang_info_array->array[lang_info_array->count] = key;
+    lang_info_array->count ++;
     
-    qsort(cinfo_array->array, cinfo_array->count, sizeof(struct language_info), pcr_comp_language_info);
+    qsort(lang_info_array->array, lang_info_array->count, sizeof(struct language_info), pcr_comp_language_info);
   }
     
 }
