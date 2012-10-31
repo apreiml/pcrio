@@ -80,33 +80,50 @@ extern void pcr_free_string_value(pcr_string string);
 /**
  * 
  */
-extern const struct culture_info_array* pcr_get_culture_info(struct pcr_file *pfile);
+extern const struct language_info_array* pcr_get_language_info(struct pcr_file *pfile);
 
 /**
  * 
- * @param culture_id if -1 take the culture with lowest id //TODO is this necessary?
+ * @param language_id if -1 take the language with lowest id //TODO is this necessary?
  * 
  * @return copy of string or if not found: pcr_string with value = NULL
  */
-extern pcr_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t culture_id);
+extern pcr_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t language_id);
 
 /**
  * The string needs to be encoded. Creates a new name and/or language node if
  * one/both of them is/are missing.
  */
-extern pcr_error_code pcr_set_string(struct pcr_file *pfile, uint32_t id, uint32_t culture_id, const pcr_string str);
+extern pcr_error_code pcr_set_string(struct pcr_file *pfile, uint32_t id, uint32_t language_id, const pcr_string str);
 
-// TODO new string api
+// TODO new string api:
 
-extern const struct culture_info * pcr_get_default_culture(const struct pcr_file *pfile);
-extern void pcr_set_default_culture(struct pcr_file *pf, struct culture_info cult_inf);
+/**
+ * Get the default language. If there is only one language available on read, it will
+ * be set as default. If not the language needs to be set using pcr_set_default_language.
+ * 
+ * @param pfile 
+ * @return language info
+ */
+extern const struct language_info * pcr_get_default_language(const struct pcr_file *pfile);
+extern void pcr_set_default_language(struct pcr_file *pf, struct language_info lang_inf);
   
-extern uint32_t pcr_get_string_size (struct pcr_file *pf, uint32_t id);
-extern uint32_t pcr_get_string_sizeC (struct pcr_file *pf, uint32_t id, uint32_t culture_id);
+/**
+ * @return Size of string or if not found: 0 or < 0 on error (no language set).
+ */
+extern int32_t pcr_get_string_size (struct pcr_file *pf, uint32_t id);
+
+
+/**
+ * Method for getting the size of a string with language id as additional parameter.
+ * 
+ * @return Size of string or 0 if not found.
+ */
+extern uint16_t pcr_get_string_sizeC (struct pcr_file *pf, uint32_t id, uint32_t language_id);
     
 /// return number of characters read
-// extern uint32_t pcr_get_string (const struct pcr_file *pf, uint32_t id, char *buff, uint32_t buff_size);  // set default culture
-extern uint32_t pcr_get_stringC (const struct pcr_file *pf, uint32_t id, uint32_t culture_id, char *buff, uint32_t buff_size);
+// extern uint32_t pcr_get_string (const struct pcr_file *pf, uint32_t id, char *buff, uint32_t buff_size);  // set default language
+extern uint32_t pcr_get_stringC (const struct pcr_file *pf, uint32_t id, uint32_t language_id, char *buff, uint32_t buff_size);
 
 
 #endif // PCRIO_H

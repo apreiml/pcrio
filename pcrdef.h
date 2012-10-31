@@ -201,21 +201,30 @@ struct resource_tree_node {
   
 };
 
-struct culture_info {
+struct language_info {
   uint32_t id;
   uint32_t codepage;
   uint32_t item_count;
 };
 
-struct culture_info_array {
-  struct culture_info *array;
+struct language_info_array {
+  struct language_info *array;
   uint32_t count;
 };
 
+/**
+ * This struct stores nodes containing the resource data. Windows uses three
+ * levels to store the data. 
+ * 
+ * 1. Type      // Type of the data. E.g. Strings, Version info (see enum resource_type)
+ * 2. Name      
+ * 3. Language  // id of the language 
+ * 
+ */
 struct resource_section_data {
   struct resource_tree_node *root_node;
-  struct culture_info_array culture_info;
-  struct culture_info *default_culture;
+  struct language_info_array language_info;
+  struct language_info *default_language;
 };
 
 struct pcr_file {
