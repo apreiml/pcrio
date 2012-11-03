@@ -201,15 +201,27 @@ struct resource_tree_node {
   
 };
 
-struct language_info {
+struct pcr_language {
   uint32_t id;
   uint32_t codepage;
+};
+
+struct language_info {
+  struct pcr_language lang;
   uint32_t item_count;
 };
 
 struct language_info_array {
   struct language_info *array;
   uint32_t count;
+};
+
+struct rsrc_string_ptr {
+  char **sptr;
+  
+  uint32_t id;
+  uint32_t language_id;
+  uint32_t codepage;
 };
 
 /**
@@ -223,8 +235,12 @@ struct language_info_array {
  */
 struct resource_section_data {
   struct resource_tree_node *root_node;
+  
   struct language_info_array language_info;
-  struct language_info *default_language;
+  struct pcr_language *default_language;
+  
+  // simple string cache, will improve access time if for e.g. 1. get_strlen, 2. get_string
+  struct rsrc_string_ptr rsrc_string_cache;
 };
 
 struct pcr_file {
