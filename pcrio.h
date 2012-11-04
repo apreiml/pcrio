@@ -53,60 +53,60 @@ enum pcr_error {
 
 typedef enum pcr_error pcr_error_code;
 
-typedef struct pcr_string_ {
+typedef struct pcr_string {
   
   char *value;
   uint32_t size;
   uint32_t codepage;  
   
-} pcr_string;
+} Pcr_string;
 
 #define PCR_SUCCESS(x) (x == PCR_ERROR_NONE)
 #define PCR_FAILURE(x) (x != PCR_ERROR_NONE)
 
-// typedef struct pcr_file PCR_FILE;
+// typedef Pcr_file PCR_FILE;
 
 /**
  * Get a string describing the error. 
  */
 extern const char* pcr_error_message(pcr_error_code err);
 
-extern struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err);
-extern void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code *err);
+extern Pcr_file *pcr_read_file(const char *filename, pcr_error_code *err);
+extern void pcr_write_file(const char *filename, Pcr_file *pfile, pcr_error_code *err);
 
-extern void pcr_free(struct pcr_file *pfile);
-extern void pcr_free_string_value(pcr_string string); 
+extern void pcr_free(Pcr_file *pfile);
+extern void pcr_free_string_value(Pcr_string string); 
 
 /**
  * 
  */
-extern const struct culture_info_array* pcr_get_culture_info(struct pcr_file *pfile);
+extern const Culture_info_array* pcr_get_culture_info(Pcr_file *pfile);
 
 /**
  * 
  * @param culture_id if -1 take the culture with lowest id //TODO is this necessary?
  * 
- * @return copy of string or if not found: pcr_string with value = NULL
+ * @return copy of string or if not found: Pcr_string with value = NULL
  */
-extern pcr_string pcr_get_string(const struct pcr_file *pfile, uint32_t id, int32_t culture_id);
+extern Pcr_string pcr_get_string(const Pcr_file *pfile, uint32_t id, int32_t culture_id);
 
 /**
  * The string needs to be encoded. Creates a new name and/or language node if
  * one/both of them is/are missing.
  */
-extern pcr_error_code pcr_set_string(struct pcr_file *pfile, uint32_t id, uint32_t culture_id, const pcr_string str);
+extern pcr_error_code pcr_set_string(Pcr_file *pfile, uint32_t id, uint32_t culture_id, const Pcr_string str);
 
 // TODO new string api
 
-extern const struct culture_info * pcr_get_default_culture(const struct pcr_file *pfile);
-extern void pcr_set_default_culture(struct pcr_file *pf, struct culture_info cult_inf);
+extern const Culture_info * pcr_get_default_culture(const Pcr_file *pfile);
+extern void pcr_set_default_culture(Pcr_file *pf, Culture_info cult_inf);
   
-extern uint32_t pcr_get_string_size (struct pcr_file *pf, uint32_t id);
-extern uint32_t pcr_get_string_sizeC (struct pcr_file *pf, uint32_t id, uint32_t culture_id);
+extern uint32_t pcr_get_string_size (Pcr_file *pf, uint32_t id);
+extern uint32_t pcr_get_string_sizeC (Pcr_file *pf, uint32_t id, uint32_t culture_id);
     
 /// return number of characters read
-// extern uint32_t pcr_get_string (const struct pcr_file *pf, uint32_t id, char *buff, uint32_t buff_size);  // set default culture
-extern uint32_t pcr_get_stringC (const struct pcr_file *pf, uint32_t id, uint32_t culture_id, char *buff, uint32_t buff_size);
+// extern uint32_t pcr_get_string (const Pcr_file *pf, uint32_t id, char *buff, uint32_t buff_size);  // set default culture
+extern uint32_t pcr_get_stringC (const Pcr_file *pf, uint32_t id, uint32_t culture_id, char *buff, uint32_t buff_size);
 
 
 #endif // PCRIO_H
