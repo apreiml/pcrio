@@ -100,8 +100,8 @@ extern void pcr_set_default_language(struct pcr_file* pf, uint32_t language_id);
 extern void pcr_set_default_languageL(struct pcr_file *pf, struct pcr_language lang);
 
 //TODO
-extern uint32_t pcr_get_str_codepage(const struct pcr_file *pf, uint32_t id);
-extern uint32_t pcr_get_str_codepageL(const struct pcr_file *pf, uint32_t id, uint32_t language_id);
+extern uint32_t pcr_get_codepage(const struct pcr_file *pf, uint32_t string_id);
+extern uint32_t pcr_get_codepageL(const struct pcr_file *pf, uint32_t string_id, uint32_t language_id);
   
 /**
  * Returns the string length. 
@@ -118,30 +118,22 @@ extern int32_t pcr_get_strlen(const struct pcr_file *pf, uint32_t id);
 extern uint16_t pcr_get_strlenL(const struct pcr_file *pf, uint32_t id, uint32_t language_id);
     
 /**
- * If the buffer is > strlen, then then the \0 will be copied too.
+ * Copies n bytes of string with given id to dest. Is n > strlen, remaining bytes 
+ * will be \0 padded. Warning: If there is no null byte among the first n bytes
+ * of src, the string placed in dest will not be null-terminated.
  * 
- * @return number of bytes successfully read. 
- * @return -1 if codepage differs from default language.
- * @return -2 if default language is not set
+ * @param n bytes to copy: 
+ * 
+ * @return >= 0 if successfull. 1 if codepage differs from default language (pcr_get_codepage).
+ * @return -1 if default language is not set
  */
-extern int32_t pcr_get_string(const struct pcr_file *pf, uint32_t id, char *buff, uint32_t buff_size); 
+extern int pcr_get_string(const struct pcr_file *pf, uint32_t id, char *dest, size_t n); 
 
 /** 
  * See pcr_get_string. This function has the language_id as additional parameter.
  * 
- * @return number of bytes successfully read or -1 if codepage is not unique for given language
+ * @return >= 0 if successfull. 1 if codepage is not unique for language (pcr_get_codepage).
  */
-extern int32_t pcr_get_stringL(const struct pcr_file *pf, uint32_t id, uint32_t language_id, char *buff, uint32_t buff_size);
-
-/**
- * If pcr_get_string or pcr_get_stringL fail because of the codepage issue. You
- * can cleary specify the language with codepage using the pcr_language struct.
- * It may only be necessary to use this function if there are strings having
- * different codepages, but exactly the same language.
- * 
- * @return number of bytes successfully read or -1 if codepage differs
- */
-extern int32_t pcr_get_stringS(const struct pcr_file *pf, uint32_t id, struct pcr_language lang, char *buff, uint32_t buff_size);
-
+extern int pcr_get_stringL(const struct pcr_file *pf, uint32_t id, uint32_t language_id, char *dest, size_t n);
 
 #endif // PCRIO_H

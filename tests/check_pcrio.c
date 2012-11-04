@@ -34,7 +34,7 @@ void test_check_string(struct pcr_file *pf, uint32_t id, int32_t lang, const cha
   
   pcr_get_stringL(pf, id, lang, buff, buff_size);
   
-  fail_if(pcr_get_stringL(pf, id, lang, buff, buff_size) == 0, NULL);
+  fail_if(pcr_get_stringL(pf, id, lang, buff, buff_size) != 0, NULL);
   
   fail_unless(strcmp(buff, str) == 0, 
               "Read string: \"%s\" differs from: \"%s\".", buff, str);
@@ -75,26 +75,21 @@ START_TEST (test_pcrio_pcr_get_string)
   
   char *buff = (char *)malloc(sizeof(char) * 20);
   
-  fail_unless(pcr_get_stringS(pf, 4488, *lang, buff, 15) == 15, NULL);
-  fail_unless(pcr_get_stringS(pf, 4488, *lang, buff, 20) == 15, NULL);
-  fail_unless(strcmp(buff, "Takeda Shingen") == 0, NULL);
-  
-  fail_unless(pcr_get_stringL(pf, 4488, lang->id, buff, 20) == 15, NULL);
+  fail_unless(pcr_get_stringL(pf, 4488, lang->id, buff, 20) == 0, NULL);
   fail_unless(strcmp(buff, "Takeda Shingen") == 0, NULL);
   
   buff[3] = '\0';
   buff[4] = '\0';
   
-  fail_unless(pcr_get_stringS(pf, 4488, *lang, buff, 4) == 4, NULL);
+  fail_unless(pcr_get_stringL(pf, 4488, lang->id, buff, 4) == 0, NULL);
   fail_unless(strcmp(buff, "Take") == 0, NULL);
   
-  fail_unless(pcr_get_stringS(pf, 77000, *lang, buff, 15) == 0, NULL);
-  fail_unless(pcr_get_stringS(pf, 50005, *lang, buff, 15) == 0, NULL);
+  fail_unless(pcr_get_stringL(pf, 4488, 1234, buff, 15) == 0, NULL);
+  fail_unless(strlen(buff) == 0, NULL);
   
-  struct pcr_language l = *lang;
-  l.id = 1234;
-  
-  fail_unless(pcr_get_stringS(pf, 4488, l, buff, 15) == 0, NULL);
+  int i;
+  for (i=0; i<15; i++)
+    fail_if(buff[i] != '\0', NULL);
   
   free(buff);
   pcr_free(pf);

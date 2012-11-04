@@ -1511,6 +1511,22 @@ const struct pcr_language *pcr_get_default_language(const struct pcr_file *pfile
 /**
  *
  */
+extern uint32_t pcr_get_codepage(const struct pcr_file *pf, uint32_t string_id)
+{
+  return 0;
+}
+
+/**
+ *
+ */
+extern uint32_t pcr_get_codepageL(const struct pcr_file *pf, uint32_t string_id, uint32_t language_id)
+{
+  return 0;
+}
+
+/**
+ *
+ */
 int32_t pcr_get_strlen (const struct pcr_file *pf, uint32_t id)
 {
   const struct pcr_language *lang_info = pcr_get_default_language(pf);
@@ -1557,7 +1573,7 @@ struct rsrc_string_ptr pcr_get_string_ptr (const struct pcr_file *pf, uint32_t i
     rsptr.sptr = NULL;
     rsptr.id = id;
     rsptr.language_id = language_id;
-    rsptr.codepage = 0;
+    rsptr.codepage = -1;
   }
   
   resource_directory_id = RSRC_STRING_NAME_DIR_ID(id);
@@ -1569,12 +1585,12 @@ struct rsrc_string_ptr pcr_get_string_ptr (const struct pcr_file *pf, uint32_t i
   {
     lang_dir = pcr_get_sub_id_node(name_dir, language_id);
     
-    if (lang_dir != NULL && lang_dir->resource_data != NULL &&
-        offset < lang_dir->resource_data->number_of_strings)
+    if (lang_dir != NULL && lang_dir->resource_data != NULL)
     {
       rsptr.codepage = lang_dir->resource_data->data_entry.codepage;
       
-      if (strlen(lang_dir->resource_data->strings[offset]) > 0)
+      if (offset < lang_dir->resource_data->number_of_strings &&
+          strlen(lang_dir->resource_data->strings[offset]) > 0)
         rsptr.sptr = &lang_dir->resource_data->strings[offset];
     }
   }
@@ -1587,62 +1603,58 @@ struct rsrc_string_ptr pcr_get_string_ptr (const struct pcr_file *pf, uint32_t i
 /**
  * 
  */
-extern int32_t pcr_get_string(const struct pcr_file *pf, uint32_t id, char *buff, uint32_t buff_size)
+int pcr_get_string(const struct pcr_file *pf, uint32_t id, char *dest, size_t n)
 {
   const struct pcr_language *lang = pcr_get_default_language(pf);
   
   if (lang == NULL)
-    return -2;
+    return -1;
   else
-    return pcr_get_stringS(pf, id, *lang, buff, buff_size);
+    return pcr_get_stringL(pf, id, lang->id, dest, n);
 }
 
 /**
  * 
  */
-int32_t pcr_get_stringL(const struct pcr_file *pf, uint32_t id, uint32_t language_id, char *buff, uint32_t buff_size)
+int pcr_get_stringL(const struct pcr_file *pf, uint32_t id, uint32_t language_id, char *dest, size_t n)
 {
+  struct rsrc_string_ptr sptr;
+  
   const struct language_info_array *linfo = pcr_get_language_info(pf);
   struct pcr_language *lang = NULL;
-  int i, lang_cnt = 0;
+  uint32_t i, lang_cnt = 0;
   
-  for (i=0; i < linfo->count; i++)
+  const struct pcr_language *default_lang = pcr_get_default_language(pf);
+  
+  sptr = pcr_get_string_ptr(pf, id, language_id);
+  
+  if (default_lang != NULL && default_lang->id == language_id)
   {
-    if (language_id == linfo->array[i].lang.id)
+      if (sptr.codepage >= 0 && sptr.codepage != default_lang->codepage)
+        lang_cnt = 2; // codepage not unique
+  }
+  else
+  {
+    for (i=0; i < linfo->count; i++)
     {
-      lang_cnt ++;
-      
-      if (lang == NULL)
-        lang = &linfo->array[i].lang;
+      if (language_id == linfo->array[i].lang.id)
+      {
+        lang_cnt ++;
+        
+        if (lang == NULL)
+          lang = &linfo->array[i].lang;
+      }
     }
   }
+  
+  
+  if (sptr.sptr != NULL)
+    strncpy (dest, *sptr.sptr, n);
+  else
+    strncpy (dest, "\0", n); 
     
-  if (lang_cnt > 1)
-    return -1;  // caller needs to be sure to get the right codepage
-    
-  return pcr_get_stringS(pf, id, *lang, buff, buff_size);
+  return (lang_cnt > 1) ? 1 : 0;
   
-}
-
-/**
- * 
- */
-int32_t pcr_get_stringS(const struct pcr_file *pf, uint32_t id, struct pcr_language lang, char *buff, uint32_t buff_size)
-{
-  struct rsrc_string_ptr sptr = pcr_get_string_ptr(pf, id, lang.id);
-  
-  if (lang.codepage != sptr.codepage)
-    return -1;
-  
-  if (sptr.sptr == NULL)
-    return 0;
-  
-  uint16_t len = strlen(*sptr.sptr) + 1; // + \0
-  uint16_t bytes_to_copy = (buff_size < len) ? buff_size : len;
-    
-  strncpy (buff, *sptr.sptr, bytes_to_copy);
-  
-  return bytes_to_copy;
 }
 
 /**
