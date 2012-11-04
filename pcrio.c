@@ -59,7 +59,7 @@ enum rsrc_node_identifier {
 
 };
 
-struct rsrc_section_size { 
+typedef struct rsrc_section_size { 
   uint32_t s_tree;
   uint32_t s_data_description;
   uint32_t s_directory_strings;
@@ -67,7 +67,7 @@ struct rsrc_section_size {
   
   uint32_t section_start_pos;
   int32_t  raw_data_offset;
-};
+} Rsrc_section_size;
 
 //TODO: iterator?
 //TODO: IMAGE_SECTION_HEADER.name needs special treatment!
@@ -102,22 +102,22 @@ int pcr_comp_culture_info (const void *a, const void *b);
  * read functions
  */
 
-void pcr_read_optional_header(struct pcr_file *pfile, FILE *file, pcr_error_code *err);
-void pcr_read_section_table(struct pcr_file *pfile, FILE *file, pcr_error_code *err);
-void pcr_read_section_data(struct pcr_file *pfile, FILE *file, pcr_error_code *err);
-void pcr_read_rsrc_section(struct pcr_file *pcr_file, FILE *file, pcr_error_code *err);
+void pcr_read_optional_header(Pcr_file *pfile, FILE *file, pcr_error_code *err);
+void pcr_read_section_table(Pcr_file *pfile, FILE *file, pcr_error_code *err);
+void pcr_read_section_data(Pcr_file *pfile, FILE *file, pcr_error_code *err);
+void pcr_read_rsrc_section(Pcr_file *pcr_file, FILE *file, pcr_error_code *err);
  
-struct resource_tree_node *pcr_read_rsrc_tree(FILE *file, enum pcr_error *err, 
-      long section_offset, long raw_data_offset, int level, enum resource_type type, struct culture_info_array *cult_info_arr);
+Resource_tree_node *pcr_read_rsrc_tree(FILE *file, enum pcr_error *err, 
+      long section_offset, long raw_data_offset, int level, enum resource_type type, Culture_info_array *cult_info_arr);
 
-struct resource_tree_node * pcr_read_sub_tree(FILE *file, enum pcr_error *err, long section_offset, long raw_data_offset,
-                  struct resource_directory_entry *directory_entry, 
-                  enum rsrc_node_identifier identified_by, int level, enum resource_type type, struct culture_info_array *cult_info_arr);              
+Resource_tree_node * pcr_read_sub_tree(FILE *file, enum pcr_error *err, long section_offset, long raw_data_offset,
+                  Resource_directory_entry *directory_entry, 
+                  enum rsrc_node_identifier identified_by, int level, enum resource_type type, Culture_info_array *cult_info_arr);              
 
-struct resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, int count, 
+Resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, int count, 
                                     enum pcr_error *err);
 
-struct resource_data* pcr_read_rsrc_data(FILE *file, enum pcr_error *err, uint32_t size, 
+Resource_data* pcr_read_rsrc_data(FILE *file, enum pcr_error *err, uint32_t size, 
                                          enum resource_type type);
 
 char *pcr_read_string(FILE *file, enum pcr_error *err);
@@ -126,56 +126,56 @@ char *pcr_read_string(FILE *file, enum pcr_error *err);
  * pre write functions
  */
 
-struct rsrc_section_size pcr_prepare_rsrc_data(struct pcr_file *pcr_file, enum pcr_error *err_code);
-void pcr_prepare_rsrc_node(struct resource_tree_node *node, 
-                               enum pcr_error *err_code, struct rsrc_section_size *size);
+Rsrc_section_size pcr_prepare_rsrc_data(Pcr_file *pcr_file, enum pcr_error *err_code);
+void pcr_prepare_rsrc_node(Resource_tree_node *node, 
+                               enum pcr_error *err_code, Rsrc_section_size *size);
 
 /*
  * write functions
  */
 
-void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream, 
-                          enum pcr_error *err, struct rsrc_section_size size);
+void pcr_write_section_data(Pcr_file *pcr_file, FILE *stream, 
+                          enum pcr_error *err, Rsrc_section_size size);
 
-void pcr_write_rsrc_section(struct pcr_file *pcr_file, FILE *stream, 
-                          enum pcr_error *err, struct rsrc_section_size size);
+void pcr_write_rsrc_section(Pcr_file *pcr_file, FILE *stream, 
+                          enum pcr_error *err, Rsrc_section_size size);
 
-void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, 
-                          enum pcr_error *err_code, struct rsrc_section_size size);
+void pcr_write_rsrc_node(Resource_tree_node *node, FILE *stream, 
+                          enum pcr_error *err_code, Rsrc_section_size size);
 
-void pcr_write_data_description(struct resource_tree_node *node, FILE *stream, 
-                          enum pcr_error *err_code, struct rsrc_section_size size);
+void pcr_write_data_description(Resource_tree_node *node, FILE *stream, 
+                          enum pcr_error *err_code, Rsrc_section_size size);
 
-void pcr_write_directory_strings(struct resource_tree_node *node, FILE *stream, 
-                          enum pcr_error *err_code, struct rsrc_section_size size);
+void pcr_write_directory_strings(Resource_tree_node *node, FILE *stream, 
+                          enum pcr_error *err_code, Rsrc_section_size size);
 
-void pcr_write_rsrc_section_data(struct resource_tree_node *node, FILE *stream, 
-                          enum pcr_error *err_code, struct rsrc_section_size size);
+void pcr_write_rsrc_section_data(Resource_tree_node *node, FILE *stream, 
+                          enum pcr_error *err_code, Rsrc_section_size size);
 
 
 void pcr_write_string(char *str, FILE *stream, enum pcr_error *err_code);
-void pcr_write_rsrc_data(struct resource_data *str, FILE *stream, enum pcr_error *err_code);
+void pcr_write_rsrc_data(Resource_data *str, FILE *stream, enum pcr_error *err_code);
 
 /*
  * initialization functions
  */
 
-void pcr_init_directory_table(struct resource_directory_table *table_ptr);
+void pcr_init_directory_table(Resource_directory_table *table_ptr);
 
 /*
  * free
  */
 
-void pcr_free_resource_tree_node(struct resource_tree_node *node);
-void pcr_free_resource_data(struct resource_data *resource_data);
+void pcr_free_resource_tree_node(Resource_tree_node *node);
+void pcr_free_resource_data(Resource_data *resource_data);
 
 /*
  * access functions
  */
 
-void pcr_update_culture_info(struct culture_info_array *cinfo_array, uint32_t culture_id, uint32_t codepage, pcr_error_code *err);
-struct image_section_header * pcr_get_section_header(struct pcr_file *pfile, const char *name);
-struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *node, uint32_t id);
+void pcr_update_culture_info(Culture_info_array *cinfo_array, uint32_t culture_id, uint32_t codepage, pcr_error_code *err);
+Image_section_header * pcr_get_section_header(Pcr_file *pfile, const char *name);
+Resource_tree_node* pcr_get_sub_id_node(const Resource_tree_node *node, uint32_t id);
 
 /*
  * misc utils
@@ -299,8 +299,8 @@ uint32_t pcr_align(uint32_t number, uint32_t align)
  */
 int pcr_comp_image_secion_headers (const void *a, const void *b)
 {
-  return ((struct image_section_header *)a)->pointer_to_raw_data -
-         ((struct image_section_header *)b)->pointer_to_raw_data; 
+  return ((Image_section_header *)a)->pointer_to_raw_data -
+         ((Image_section_header *)b)->pointer_to_raw_data; 
 }
 
 /**
@@ -308,24 +308,24 @@ int pcr_comp_image_secion_headers (const void *a, const void *b)
  */
 int pcr_comp_id_tree_nodes (const void *a, const void *b)
 {
-  return (*(struct resource_tree_node **)a)->id - 
-         (*(struct resource_tree_node **)b)->id;
+  return (*(Resource_tree_node **)a)->id - 
+         (*(Resource_tree_node **)b)->id;
 }
 
 int pcr_comp_name_tree_nodes (const void *a, const void *b)
 {
-  return strcmp((*(struct resource_tree_node **)a)->name, 
-                (*(struct resource_tree_node **)b)->name); 
+  return strcmp((*(Resource_tree_node **)a)->name, 
+                (*(Resource_tree_node **)b)->name); 
 }
 
 int pcr_comp_culture_info (const void *a, const void *b)
 {
-  int id_diff = ((struct culture_info *)a)->id -
-                ((struct culture_info *)b)->id; 
+  int id_diff = ((Culture_info *)a)->id -
+                ((Culture_info *)b)->id; 
   
   if (id_diff == 0)
-    return ((struct culture_info *)a)->codepage -
-           ((struct culture_info *)b)->codepage; 
+    return ((Culture_info *)a)->codepage -
+           ((Culture_info *)b)->codepage; 
   else
     return id_diff;
 }
@@ -337,10 +337,10 @@ int pcr_comp_culture_info (const void *a, const void *b)
 /**
  * 
  */
-struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
+Pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
 {
   FILE *file = NULL;
-  struct pcr_file *pfile = NULL;
+  Pcr_file *pfile = NULL;
   unsigned int rm_stub_size;  
 
   if (PCR_FAILURE(*err))
@@ -352,7 +352,7 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
     *err = PCR_ERROR_READ;
   else
   {
-    pfile = (struct pcr_file *) pcr_malloc(sizeof(struct pcr_file), err);
+    pfile = (Pcr_file *) pcr_malloc(sizeof(Pcr_file), err);
     
     pfile->rm_stub = NULL;
     pfile->image_optional_header32 = NULL;
@@ -360,14 +360,14 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
     pfile->rsrc_section_data = NULL;
     pfile->section_data = NULL;
 
-    pcr_fread(&pfile->dos_header, sizeof(struct image_dos_header), 1, file, err);
+    pcr_fread(&pfile->dos_header, sizeof(Image_dos_header), 1, file, err);
     
-    rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
+    rm_stub_size = pfile->dos_header.e_lfanew - sizeof(Image_dos_header);
     pfile->rm_stub = (char *)pcr_malloc(rm_stub_size, err);
     
     pcr_fread(pfile->rm_stub, rm_stub_size, 1, file, err);    
     pcr_fread(pfile->signature, sizeof(char), 4, file, err);
-    pcr_fread(&pfile->image_file_header, sizeof(struct image_file_header), 1, file, err);
+    pcr_fread(&pfile->image_file_header, sizeof(Image_file_header), 1, file, err);
     
     pcr_read_optional_header(pfile, file, err);
     pcr_read_section_table(pfile, file, err);
@@ -383,7 +383,7 @@ struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
 /**
  * Allocate and read optional header if available
  */
-void pcr_read_optional_header(struct pcr_file *pfile, FILE *file, pcr_error_code *err)
+void pcr_read_optional_header(Pcr_file *pfile, FILE *file, pcr_error_code *err)
 { 
   uint16_t magic = 0;
   
@@ -401,18 +401,18 @@ void pcr_read_optional_header(struct pcr_file *pfile, FILE *file, pcr_error_code
       *err= PCR_ERROR_UNSUPPORTED;
     else
     {
-      pfile->image_optional_header32 = (struct image_optional_header32 *)
-          pcr_malloc(sizeof(struct image_optional_header32), err);
+      pfile->image_optional_header32 = (Image_optional_header32 *)
+          pcr_malloc(sizeof(Image_optional_header32), err);
         
       if (*err== PCR_ERROR_NONE)
       {
-        struct image_optional_header32 *opt_header = pfile->image_optional_header32;
+        Image_optional_header32 *opt_header = pfile->image_optional_header32;
         
         opt_header->magic = magic;
         
         // skipping magic on read
         pcr_fread(&opt_header->major_linker_version, 
-                  sizeof(struct image_optional_header32) - sizeof(magic), 1, file, err);
+                  sizeof(Image_optional_header32) - sizeof(magic), 1, file, err);
       }
             
     }
@@ -422,24 +422,24 @@ void pcr_read_optional_header(struct pcr_file *pfile, FILE *file, pcr_error_code
 /**
  * Read and sort section table
  */
-void pcr_read_section_table(struct pcr_file *pfile, FILE *file, pcr_error_code *err)
+void pcr_read_section_table(Pcr_file *pfile, FILE *file, pcr_error_code *err)
 {
   if (PCR_FAILURE(*err))
     return;
   
   uint16_t num_sec = pfile->image_file_header.number_of_sections;
         
-  pfile->section_table = (struct image_section_header *)pcr_malloc(sizeof(struct image_section_header) * num_sec, err);
-  pcr_fread(pfile->section_table, sizeof(struct image_section_header), num_sec, file, err);
+  pfile->section_table = (Image_section_header *)pcr_malloc(sizeof(Image_section_header) * num_sec, err);
+  pcr_fread(pfile->section_table, sizeof(Image_section_header), num_sec, file, err);
   
-  qsort(pfile->section_table, num_sec, sizeof(struct image_section_header),  
+  qsort(pfile->section_table, num_sec, sizeof(Image_section_header),  
         pcr_comp_image_secion_headers);
 }
 
 /**
  * 
  */
-void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code *err)
+void pcr_read_section_data(Pcr_file *pfile, FILE *stream, pcr_error_code *err)
 {
   if (PCR_FAILURE(*err))
     return;
@@ -452,7 +452,7 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code 
   
   for (i=0; i<num_sec && PCR_SUCCESS(*err); i++)
   {
-    struct image_section_header *sec = &pfile->section_table[i];
+    Image_section_header *sec = &pfile->section_table[i];
     
     fseek(stream, sec->pointer_to_raw_data, SEEK_SET);
     
@@ -475,22 +475,22 @@ void pcr_read_section_data(struct pcr_file *pfile, FILE *stream, pcr_error_code 
 /**
  * 
  */
-void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *err)
+void pcr_read_rsrc_section(Pcr_file *pfile, FILE *file, pcr_error_code *err)
 {
   pfile->rsrc_section_data = NULL;
  
   if (PCR_FAILURE(*err))
     return;
 
-  struct image_section_header *rsrc_header;
+  Image_section_header *rsrc_header;
   
   rsrc_header = pcr_get_section_header(pfile, SECTION_NAME_RESOURCE);
     
   if (rsrc_header != NULL)
   {
-    struct culture_info_array *cinfo = NULL;
+    Culture_info_array *cinfo = NULL;
 
-    pfile->rsrc_section_data = (struct resource_section_data *)pcr_malloc(sizeof(struct resource_section_data), err);
+    pfile->rsrc_section_data = (Resource_section_data *)pcr_malloc(sizeof(Resource_section_data), err);
     
     cinfo = &pfile->rsrc_section_data->culture_info;
 
@@ -516,27 +516,27 @@ void pcr_read_rsrc_section(struct pcr_file *pfile, FILE *file, pcr_error_code *e
 /**
  * reas a directory table and recoursivly reads its children
  */
-struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_code, 
-                       long section_offset, long raw_data_offset, int level, enum resource_type type, struct culture_info_array *cult_info_arr)
+Resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_code, 
+                       long section_offset, long raw_data_offset, int level, enum resource_type type, Culture_info_array *cult_info_arr)
 {
   if (*err_code != PCR_ERROR_NONE)
     return NULL;
   
-  struct resource_tree_node *node = NULL;  
+  Resource_tree_node *node = NULL;  
 
-  node = (struct resource_tree_node *)pcr_malloc(sizeof(struct resource_tree_node), err_code);
+  node = (Resource_tree_node *)pcr_malloc(sizeof(Resource_tree_node), err_code);
  
   if (node != NULL)
   {
     uint16_t num_id_entries, num_name_entries;
-    struct resource_directory_entry *name_entries, *id_entries;
+    Resource_directory_entry *name_entries, *id_entries;
     
     node->name = NULL;
     node->id_entries = NULL;
     node->name_entries = NULL;
     node->resource_data = NULL;
   
-    pcr_fread(&node->directory_table, sizeof(struct resource_directory_table), 1, file, err_code);
+    pcr_fread(&node->directory_table, sizeof(Resource_directory_table), 1, file, err_code);
 
     num_id_entries = node->directory_table.number_of_id_entries;
     num_name_entries = node->directory_table.number_of_name_entries;
@@ -544,8 +544,8 @@ struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_c
     name_entries = pcr_read_rsrc_directory_entries(file, num_name_entries, err_code);
     id_entries = pcr_read_rsrc_directory_entries(file, num_id_entries, err_code);
   
-    node->name_entries = (struct resource_tree_node **)pcr_malloc(sizeof(struct resource_tree_node *) * num_name_entries, err_code);
-    node->id_entries = (struct resource_tree_node **)pcr_malloc(sizeof(struct resource_tree_node *) * num_id_entries, err_code);
+    node->name_entries = (Resource_tree_node **)pcr_malloc(sizeof(Resource_tree_node *) * num_name_entries, err_code);
+    node->id_entries = (Resource_tree_node **)pcr_malloc(sizeof(Resource_tree_node *) * num_id_entries, err_code);
     
     if (*err_code != PCR_ERROR_NONE)
     {
@@ -578,15 +578,15 @@ struct resource_tree_node * pcr_read_rsrc_tree(FILE *file, pcr_error_code *err_c
  * Reads a node using data from givne directory_entry and recursivly loads 
  * subdirectories or leaf data.
  */
-struct resource_tree_node * 
+Resource_tree_node * 
 pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, long raw_data_offset,
-                  struct resource_directory_entry *directory_entry, 
-                  enum rsrc_node_identifier identified_by, int level, enum resource_type type, struct culture_info_array *cult_info_arr)
+                  Resource_directory_entry *directory_entry, 
+                  enum rsrc_node_identifier identified_by, int level, enum resource_type type, Culture_info_array *cult_info_arr)
 {
   if (*err_code != PCR_ERROR_NONE)
     return NULL;
    
-  struct resource_tree_node *subtree = NULL;
+  Resource_tree_node *subtree = NULL;
   uint32_t rva_child;
   
   level ++;
@@ -607,15 +607,15 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, lon
   }
   else // node contains data (leaf)
   {
-    struct resource_data_entry data_entry;
-    struct resource_data* data = NULL;
+    Resource_data_entry data_entry;
+    Resource_data* data = NULL;
     long data_offset;
     
     fseek(file, section_offset + rva_child, SEEK_SET);
     
 //     printf("Read data_entry at :%d\n" ,section_offset + rva_child);
     
-    pcr_fread(&data_entry, sizeof(struct resource_data_entry), 1, file, err_code);
+    pcr_fread(&data_entry, sizeof(Resource_data_entry), 1, file, err_code);
     
     data_offset = data_entry.data_rva + raw_data_offset ;
     fseek(file, data_offset, SEEK_SET); 
@@ -630,7 +630,7 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, lon
       pcr_update_culture_info(cult_info_arr, directory_entry->id, data_entry.codepage, err_code);
     }
     
-    subtree = (struct resource_tree_node *)pcr_malloc(sizeof(struct resource_tree_node), err_code);
+    subtree = (Resource_tree_node *)pcr_malloc(sizeof(Resource_tree_node), err_code);
 
     if (subtree != NULL)
     {    
@@ -671,17 +671,17 @@ pcr_read_sub_tree(FILE *file, enum pcr_error *err_code, long section_offset, lon
 /**
  * Reads an array of directory entries.
  */
-struct resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, int count, 
+Resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, int count, 
                                     enum pcr_error *err_code)
 {
   if (*err_code != PCR_ERROR_NONE || count <= 0)
     return NULL;
   
-  struct resource_directory_entry *entries = NULL;
+  Resource_directory_entry *entries = NULL;
   
-  entries = (struct resource_directory_entry *)
-      pcr_malloc(sizeof(struct resource_directory_entry) * count, err_code);
-  pcr_fread(entries, sizeof(struct resource_directory_entry), count, file, err_code);
+  entries = (Resource_directory_entry *)
+      pcr_malloc(sizeof(Resource_directory_entry) * count, err_code);
+  pcr_fread(entries, sizeof(Resource_directory_entry), count, file, err_code);
   
   return entries;
 }
@@ -689,10 +689,10 @@ struct resource_directory_entry * pcr_read_rsrc_directory_entries(FILE *file, in
 /**
  * read either a string or raw data from file
  */
-struct resource_data *pcr_read_rsrc_data(FILE *file, enum pcr_error *err_code, 
+Resource_data *pcr_read_rsrc_data(FILE *file, enum pcr_error *err_code, 
                                    uint32_t size, enum resource_type type)
 {
-  struct resource_data *data = NULL;
+  Resource_data *data = NULL;
     
   if (size > 0 && *err_code == PCR_ERROR_NONE)
   {
@@ -736,7 +736,7 @@ struct resource_data *pcr_read_rsrc_data(FILE *file, enum pcr_error *err_code,
       pcr_fread(raw_data, size, 1, file, err_code);
     }
     
-    data = (struct resource_data *)pcr_malloc(sizeof(struct resource_data), err_code);
+    data = (Resource_data *)pcr_malloc(sizeof(Resource_data), err_code);
    
     if (data != NULL)
     {
@@ -788,10 +788,10 @@ char *pcr_read_string(FILE *file, enum pcr_error *err_code)
  * Calculates sizes and updates rvas. Data and name rvas will be relative.
  * They have to be updated on write.
  */
-struct rsrc_section_size pcr_prepare_rsrc_data(struct pcr_file *pcr_file, enum pcr_error *err_code)
+Rsrc_section_size pcr_prepare_rsrc_data(Pcr_file *pcr_file, enum pcr_error *err_code)
 {
-  struct rsrc_section_size rs_size;
-  struct image_section_header *rsrc_header;
+  Rsrc_section_size rs_size;
+  Image_section_header *rsrc_header;
   
   rs_size.s_tree = 0;
   rs_size.s_data_description = 0;
@@ -826,8 +826,8 @@ struct rsrc_section_size pcr_prepare_rsrc_data(struct pcr_file *pcr_file, enum p
 /**
  * recursivly update rvas and sizes
  */
-void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_code, 
-                           struct rsrc_section_size *size)
+void pcr_prepare_rsrc_node(Resource_tree_node *node, enum pcr_error *err_code, 
+                           Rsrc_section_size *size)
 {
   int i = 0;
     
@@ -850,8 +850,8 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
     uint32_t rva_next_node = 0;
     rva_next_node += node->directory_table.number_of_id_entries;
     rva_next_node += node->directory_table.number_of_name_entries;
-    rva_next_node *= sizeof(struct resource_directory_entry);
-    rva_next_node += sizeof(struct resource_directory_table);
+    rva_next_node *= sizeof(Resource_directory_entry);
+    rva_next_node += sizeof(Resource_directory_table);
         
     size->s_tree += rva_next_node;
     
@@ -865,7 +865,7 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
   {
     node->directory_entry.rva = size->s_data_description;
     
-    size->s_data_description += sizeof(struct resource_data_entry);
+    size->s_data_description += sizeof(Resource_data_entry);
     
     if (node->resource_data->type == RESOURCE_TYPE_STRINGS)
     {
@@ -893,11 +893,11 @@ void pcr_prepare_rsrc_node(struct resource_tree_node *node, enum pcr_error *err_
 /**
  * updates section adress and sizes
  */
-void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size rs_size)
+void pcr_update_section_table(Pcr_file *pfile, Rsrc_section_size rs_size)
 {
   uint32_t i, virtual_rsrc_size, raw_rsrc_size, file_align, sec_align;
   int32_t raw_diff, virt_diff;
-  struct image_section_header *rsrc_sh;
+  Image_section_header *rsrc_sh;
   
   rsrc_sh = pcr_get_section_header(pfile, SECTION_NAME_RESOURCE);
   
@@ -937,7 +937,7 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
     // update section table
     for (i=0; i<num_sec; i++)
     {
-      struct image_section_header *sec = &pfile->section_table[i];
+      Image_section_header *sec = &pfile->section_table[i];
     
       if (strcmp(SECTION_NAME_RESOURCE, sec->name) != 0)
       {
@@ -965,7 +965,7 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
     
     for (i=0; i<DATA_DIRECTORY_COUNT; i++)
     {
-      struct image_data_directory *dir = &pfile->image_optional_header32->data_directory[i];
+      Image_data_directory *dir = &pfile->image_optional_header32->data_directory[i];
       
       if (dir->rva > pfile->image_optional_header32->data_directory[DATA_DIRECTORY_ID_RESOURCE].rva)
       {
@@ -982,7 +982,7 @@ void pcr_update_section_table(struct pcr_file *pfile, struct rsrc_section_size r
 /**
  * 
  */
-void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code *err)
+void pcr_write_file(const char *filename, Pcr_file *pfile, pcr_error_code *err)
 {
   FILE *stream = NULL;
   
@@ -995,23 +995,23 @@ void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code
     *err = PCR_ERROR_WRITE;
   else
   {
-    struct rsrc_section_size rs_size;
+    Rsrc_section_size rs_size;
     rs_size = pcr_prepare_rsrc_data(pfile, err);
     
     pcr_update_section_table(pfile, rs_size);
     
-    pcr_fwrite(&pfile->dos_header, sizeof(struct image_dos_header), 1, stream, err);
+    pcr_fwrite(&pfile->dos_header, sizeof(Image_dos_header), 1, stream, err);
     
-    unsigned int rm_stub_size = pfile->dos_header.e_lfanew - sizeof(struct image_dos_header);
+    unsigned int rm_stub_size = pfile->dos_header.e_lfanew - sizeof(Image_dos_header);
     
     pcr_fwrite(pfile->rm_stub, rm_stub_size, 1, stream, err);
     pcr_fwrite(pfile->signature, sizeof(char), 4, stream, err); 
-    pcr_fwrite(&pfile->image_file_header, sizeof(struct image_file_header), 1, stream, err);
+    pcr_fwrite(&pfile->image_file_header, sizeof(Image_file_header), 1, stream, err);
     
     if (pfile->image_optional_header32 != NULL)
-      pcr_fwrite(pfile->image_optional_header32, sizeof(struct image_optional_header32), 1, stream, err);
+      pcr_fwrite(pfile->image_optional_header32, sizeof(Image_optional_header32), 1, stream, err);
     
-    pcr_fwrite(pfile->section_table, sizeof(struct image_section_header),
+    pcr_fwrite(pfile->section_table, sizeof(Image_section_header),
                 pfile->image_file_header.number_of_sections, stream, err);
       
     pcr_write_section_data(pfile, stream, err, rs_size);
@@ -1024,11 +1024,11 @@ void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code
 /**
  * 
  */
-void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream, 
-                            enum pcr_error *err_code, struct rsrc_section_size size)
+void pcr_write_section_data(Pcr_file *pcr_file, FILE *stream, 
+                            enum pcr_error *err_code, Rsrc_section_size size)
 { 
   uint16_t i,num_sec;
-  struct image_section_header *sec = NULL;
+  Image_section_header *sec = NULL;
   
   if (*err_code != PCR_ERROR_NONE ||  pcr_file->image_optional_header32 == NULL)
     return;
@@ -1058,8 +1058,8 @@ void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream,
 /**
  * 
  */
-void pcr_write_rsrc_section(struct pcr_file *pcr_file, FILE *stream,
-                            enum pcr_error *err_code, struct rsrc_section_size size)
+void pcr_write_rsrc_section(Pcr_file *pcr_file, FILE *stream,
+                            enum pcr_error *err_code, Rsrc_section_size size)
 {
   // write resource tree
   pcr_write_rsrc_node(pcr_file->rsrc_section_data->root_node, stream, err_code, size);
@@ -1072,21 +1072,21 @@ void pcr_write_rsrc_section(struct pcr_file *pcr_file, FILE *stream,
 /**
  * 
  */
-void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, enum pcr_error *err_code, 
-                         struct rsrc_section_size size)
+void pcr_write_rsrc_node(Resource_tree_node *node, FILE *stream, enum pcr_error *err_code, 
+                         Rsrc_section_size size)
 {
   int i=0;
   
   if (node->resource_data != NULL)
     return;
   
-  pcr_fwrite(&node->directory_table, sizeof(struct resource_directory_table), 1, stream, err_code);
+  pcr_fwrite(&node->directory_table, sizeof(Resource_directory_table), 1, stream, err_code);
   
   // write directory entries
   
   for (i=0; i<node->directory_table.number_of_name_entries; i++)
   {
-    struct resource_tree_node *subnode = node->name_entries[i];
+    Resource_tree_node *subnode = node->name_entries[i];
     
     // update name adress
     subnode->directory_entry.id += size.s_tree + size.s_data_description;
@@ -1095,17 +1095,17 @@ void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, enum pcr
     if (subnode->resource_data != NULL)
       subnode->directory_entry.rva += size.s_tree;
     
-    pcr_fwrite(&subnode->directory_entry, sizeof(struct resource_directory_entry), 1, stream, err_code);
+    pcr_fwrite(&subnode->directory_entry, sizeof(Resource_directory_entry), 1, stream, err_code);
   }
     
   for (i=0; i<node->directory_table.number_of_id_entries; i++)
   {
-    struct resource_tree_node *subnode = node->id_entries[i];
+    Resource_tree_node *subnode = node->id_entries[i];
     
     if (subnode->resource_data != NULL)
       subnode->directory_entry.rva += size.s_tree;
     
-    pcr_fwrite(&subnode->directory_entry, sizeof(struct resource_directory_entry), 1, stream, err_code);
+    pcr_fwrite(&subnode->directory_entry, sizeof(Resource_directory_entry), 1, stream, err_code);
   }
    
   // write subnodes
@@ -1120,16 +1120,16 @@ void pcr_write_rsrc_node(struct resource_tree_node *node, FILE *stream, enum pcr
 /**
  * recoursivly iterates the tree and writes data descriptions to the file
  */
-void pcr_write_data_description(struct resource_tree_node *node, FILE *stream, enum pcr_error *err_code, 
-                                struct rsrc_section_size size)
+void pcr_write_data_description(Resource_tree_node *node, FILE *stream, enum pcr_error *err_code, 
+                                Rsrc_section_size size)
 {
   if (node->resource_data != NULL) // write data description
   {
-    struct resource_data_entry *entry = &node->resource_data->data_entry;
+    Resource_data_entry *entry = &node->resource_data->data_entry;
     
     entry->data_rva += size.section_start_pos + size.s_tree + size.s_data_description + size.s_directory_strings - size.raw_data_offset;
     
-    pcr_fwrite(entry, sizeof(struct resource_data_entry), 1, stream, err_code);
+    pcr_fwrite(entry, sizeof(Resource_data_entry), 1, stream, err_code);
   }
   else // go down if possible
   {
@@ -1146,8 +1146,8 @@ void pcr_write_data_description(struct resource_tree_node *node, FILE *stream, e
 /**
  * writes node name identifiers
  */
-void pcr_write_directory_strings(struct resource_tree_node *node, FILE *stream, enum pcr_error *err_code, 
-                                 struct rsrc_section_size size)
+void pcr_write_directory_strings(Resource_tree_node *node, FILE *stream, enum pcr_error *err_code, 
+                                 Rsrc_section_size size)
 {
   if (node->name != NULL)
   {
@@ -1166,7 +1166,7 @@ void pcr_write_directory_strings(struct resource_tree_node *node, FILE *stream, 
 /**
  * 
  */
-void pcr_write_rsrc_section_data(struct resource_tree_node *node, FILE *stream, enum pcr_error *err_code, struct rsrc_section_size size)
+void pcr_write_rsrc_section_data(Resource_tree_node *node, FILE *stream, enum pcr_error *err_code, Rsrc_section_size size)
 {
   if (node->resource_data != NULL)
   {
@@ -1184,7 +1184,7 @@ void pcr_write_rsrc_section_data(struct resource_tree_node *node, FILE *stream, 
 /**
  * 
  */
-void pcr_write_rsrc_data(struct resource_data *str, FILE *stream, enum pcr_error *err_code)
+void pcr_write_rsrc_data(Resource_data *str, FILE *stream, enum pcr_error *err_code)
 {
   if (str != NULL)
   {
@@ -1223,7 +1223,7 @@ void pcr_write_string(char *str, FILE *stream, enum pcr_error *err_code)
  * initialization functions
  */
 
-void pcr_init_directory_table(struct resource_directory_table *table_ptr)
+void pcr_init_directory_table(Resource_directory_table *table_ptr)
 {
   table_ptr->number_of_id_entries = 0;
   table_ptr->number_of_name_entries = 0;
@@ -1240,7 +1240,7 @@ void pcr_init_directory_table(struct resource_directory_table *table_ptr)
 /**
  * 
  */
-void pcr_free(struct pcr_file* pcr_file)
+void pcr_free(Pcr_file* pcr_file)
 {
   if (pcr_file)
   {
@@ -1267,7 +1267,7 @@ void pcr_free(struct pcr_file* pcr_file)
     
 }
 
-extern void pcr_free_string_value(pcr_string string)
+extern void pcr_free_string_value(Pcr_string string)
 {
   free(string.value);
   string.value = NULL;
@@ -1277,7 +1277,7 @@ extern void pcr_free_string_value(pcr_string string)
 /**
  * 
  */
-void pcr_free_resource_tree_node(struct resource_tree_node *node)
+void pcr_free_resource_tree_node(Resource_tree_node *node)
 {
   int i;
   
@@ -1305,7 +1305,7 @@ void pcr_free_resource_tree_node(struct resource_tree_node *node)
 /**
  * 
  */
-void pcr_free_resource_data(struct resource_data *resource_data)
+void pcr_free_resource_data(Resource_data *resource_data)
 {
   if (resource_data != NULL)
   {
@@ -1323,16 +1323,16 @@ void pcr_free_resource_data(struct resource_data *resource_data)
  * access functions
  */
 
-void pcr_update_culture_info(struct culture_info_array *cinfo_array, uint32_t culture_id, uint32_t codepage, pcr_error_code *err)
+void pcr_update_culture_info(Culture_info_array *cinfo_array, uint32_t culture_id, uint32_t codepage, pcr_error_code *err)
 {
-  struct culture_info key, *ptr = NULL;
+  Culture_info key, *ptr = NULL;
   
   key.id = culture_id;
   key.codepage = codepage;
   key.item_count = 0;
   
-  ptr = (struct culture_info*)bsearch(&key, cinfo_array->array, cinfo_array->count, 
-                                      sizeof(struct culture_info), pcr_comp_culture_info);
+  ptr = (Culture_info*)bsearch(&key, cinfo_array->array, cinfo_array->count, 
+                                      sizeof(Culture_info), pcr_comp_culture_info);
   
   if (ptr)
   {
@@ -1340,12 +1340,12 @@ void pcr_update_culture_info(struct culture_info_array *cinfo_array, uint32_t cu
   }
   else
   {
-    cinfo_array->array = (struct culture_info *)pcr_realloc(cinfo_array->array, sizeof(struct culture_info), err);
+    cinfo_array->array = (Culture_info *)pcr_realloc(cinfo_array->array, sizeof(Culture_info), err);
     
     cinfo_array->array[cinfo_array->count] = key;
     cinfo_array->count ++;
     
-    qsort(cinfo_array->array, cinfo_array->count, sizeof(struct culture_info), pcr_comp_culture_info);
+    qsort(cinfo_array->array, cinfo_array->count, sizeof(Culture_info), pcr_comp_culture_info);
   }
     
 }
@@ -1353,7 +1353,7 @@ void pcr_update_culture_info(struct culture_info_array *cinfo_array, uint32_t cu
 /**
  * Get section header by name. Returns NULL if not found.
  */
-struct image_section_header * pcr_get_section_header(struct pcr_file *pfile, const char *name)
+Image_section_header * pcr_get_section_header(Pcr_file *pfile, const char *name)
 {
   int i;
   
@@ -1367,17 +1367,17 @@ struct image_section_header * pcr_get_section_header(struct pcr_file *pfile, con
 /**
  * returns id node or NULL if unable to get it
  */
-struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *node, uint32_t id)
+Resource_tree_node* pcr_get_sub_id_node(const Resource_tree_node *node, uint32_t id)
 {
-  struct resource_tree_node key, *kptr, **result = NULL;
+  Resource_tree_node key, *kptr, **result = NULL;
 
   if (node && node->directory_table.number_of_id_entries > 0)
   {
     key.id = id;
     kptr = &key;
   
-    result = (struct resource_tree_node **)bsearch(&kptr, node->id_entries, node->directory_table.number_of_id_entries, 
-                  sizeof(struct resource_tree_node **), pcr_comp_id_tree_nodes);
+    result = (Resource_tree_node **)bsearch(&kptr, node->id_entries, node->directory_table.number_of_id_entries, 
+                  sizeof(Resource_tree_node **), pcr_comp_id_tree_nodes);
   }
   
   if (result == NULL)
@@ -1389,9 +1389,9 @@ struct resource_tree_node* pcr_get_sub_id_node(const struct resource_tree_node *
 /**
  * returns name node or NULL if unable to get it
  */
-struct resource_tree_node* pcr_get_sub_name_node(const struct resource_tree_node *node, const char *name)
+Resource_tree_node* pcr_get_sub_name_node(const Resource_tree_node *node, const char *name)
 {
-  struct resource_tree_node key, *kptr, **result = NULL;
+  Resource_tree_node key, *kptr, **result = NULL;
   pcr_error_code err = PCR_ERROR_NONE;
   
   if (node && node->directory_table.number_of_name_entries > 0)
@@ -1401,8 +1401,8 @@ struct resource_tree_node* pcr_get_sub_name_node(const struct resource_tree_node
     strcpy(key.name, name); 
     kptr = &key;
   
-    result = (struct resource_tree_node **)bsearch(&kptr, node->name_entries, node->directory_table.number_of_name_entries, 
-                  sizeof(struct resource_tree_node **), pcr_comp_name_tree_nodes);
+    result = (Resource_tree_node **)bsearch(&kptr, node->name_entries, node->directory_table.number_of_name_entries, 
+                  sizeof(Resource_tree_node **), pcr_comp_name_tree_nodes);
     
     free(key.name);
   }
@@ -1416,7 +1416,7 @@ struct resource_tree_node* pcr_get_sub_name_node(const struct resource_tree_node
 /**
  * Returns NULL if not found.
  */
-struct resource_tree_node *pcr_get_rsrc_string_node_by_id(const struct pcr_file *file, uint32_t id)
+Resource_tree_node *pcr_get_rsrc_string_node_by_id(const Pcr_file *file, uint32_t id)
 {
   if (file == NULL)
   {
@@ -1424,7 +1424,7 @@ struct resource_tree_node *pcr_get_rsrc_string_node_by_id(const struct pcr_file 
     return NULL;
   }
   
-  struct resource_tree_node *string_dir;
+  Resource_tree_node *string_dir;
   
   string_dir = pcr_get_sub_id_node(file->rsrc_section_data->root_node, RESOURCE_TYPE_STRINGS);
   
@@ -1434,7 +1434,7 @@ struct resource_tree_node *pcr_get_rsrc_string_node_by_id(const struct pcr_file 
 /**
  * TODO error handling
  */
-void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_node *child)
+void pcr_add_rsrc_node(Resource_tree_node *root, Resource_tree_node *child)
 {
   pcr_error_code err = PCR_ERROR_NONE;
   uint16_t num_id_entries;
@@ -1453,8 +1453,8 @@ void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_nod
       if (root->id_entries == NULL)
         printf("Root id null\n");
       
-      struct resource_tree_node **id_entries_new = (struct resource_tree_node **)
-        pcr_realloc(root->id_entries, num_id_entries * sizeof(struct resource_tree_node *), &err);
+      Resource_tree_node **id_entries_new = (Resource_tree_node **)
+        pcr_realloc(root->id_entries, num_id_entries * sizeof(Resource_tree_node *), &err);
         
       if (id_entries_new == NULL)
         printf("Error: Realloc (pcr_add_rsrc_node)\n");
@@ -1467,7 +1467,7 @@ void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_nod
         
         root->id_entries[num_id_entries - 1] = child;
         
-        qsort(root->id_entries, num_id_entries, sizeof(struct resource_tree_node *),
+        qsort(root->id_entries, num_id_entries, sizeof(Resource_tree_node *),
               pcr_comp_id_tree_nodes);
         
       }
@@ -1482,7 +1482,7 @@ void pcr_add_rsrc_node(struct resource_tree_node *root, struct resource_tree_nod
 /**
  *
  */
-const struct culture_info *pcr_get_default_culture(const struct pcr_file *pfile)
+const Culture_info *pcr_get_default_culture(const Pcr_file *pfile)
 {
   return pfile->rsrc_section_data->default_culture;
 }
@@ -1490,7 +1490,7 @@ const struct culture_info *pcr_get_default_culture(const struct pcr_file *pfile)
 /**
  * 
  */
-const struct culture_info_array* pcr_get_culture_info(struct pcr_file *pfile)
+const Culture_info_array* pcr_get_culture_info(Pcr_file *pfile)
 {
   if (pfile && pfile->rsrc_section_data)
     return &pfile->rsrc_section_data->culture_info;
@@ -1514,11 +1514,11 @@ uint32_t pcr_get_rsrc_data_string_index(uint32_t string_id)
 /**
  * 
  */
-pcr_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t culture_id)
+Pcr_string pcr_get_string(const Pcr_file *file, uint32_t id, int32_t culture_id)
 {
-  pcr_string string;
+  Pcr_string string;
   uint32_t resource_directory_id, offset, string_size;
-  struct resource_tree_node *name_dir = NULL, *lang_dir = NULL;
+  Resource_tree_node *name_dir = NULL, *lang_dir = NULL;
   pcr_error_code err = PCR_ERROR_NONE;
   
   string.codepage = 0;
@@ -1569,13 +1569,13 @@ pcr_string pcr_get_string(const struct pcr_file *file, uint32_t id, int32_t cult
 /**
  * TODO
  */
-pcr_error_code pcr_set_string(struct pcr_file *file, uint32_t id, uint32_t culture_id, const pcr_string pstr)
+pcr_error_code pcr_set_string(Pcr_file *file, uint32_t id, uint32_t culture_id, const Pcr_string pstr)
 {
   pcr_error_code err = PCR_ERROR_NONE;
   uint32_t i;
   
-  struct resource_tree_node *string_dir = NULL, *name_dir = NULL, *lang_dir = NULL;
-  struct resource_data *resource_data = NULL;
+  Resource_tree_node *string_dir = NULL, *name_dir = NULL, *lang_dir = NULL;
+  Resource_data *resource_data = NULL;
   
   uint32_t resource_directory_id, offset;
   
@@ -1602,7 +1602,7 @@ pcr_error_code pcr_set_string(struct pcr_file *file, uint32_t id, uint32_t cultu
   {
     printf("Debug: Trying to create a name node with id: %d\n", resource_directory_id);
     
-    name_dir = (struct resource_tree_node *)pcr_malloc(sizeof(struct resource_tree_node), &err);
+    name_dir = (Resource_tree_node *)pcr_malloc(sizeof(Resource_tree_node), &err);
     
     name_dir->id = resource_directory_id;
     
@@ -1624,7 +1624,7 @@ pcr_error_code pcr_set_string(struct pcr_file *file, uint32_t id, uint32_t cultu
   {
     printf("Debug: Trying to create a language node with id: %d\n", culture_id);
     
-    lang_dir = (struct resource_tree_node *)pcr_malloc(sizeof(struct resource_tree_node), &err);
+    lang_dir = (Resource_tree_node *)pcr_malloc(sizeof(Resource_tree_node), &err);
     
     lang_dir->id = culture_id;
     
@@ -1645,7 +1645,7 @@ pcr_error_code pcr_set_string(struct pcr_file *file, uint32_t id, uint32_t cultu
   {
     printf("Debug: Trying to create resource data\n");
     
-    resource_data = (struct resource_data *)pcr_malloc(sizeof(struct resource_data), &err);
+    resource_data = (Resource_data *)pcr_malloc(sizeof(Resource_data), &err);
     
     resource_data->type = RESOURCE_TYPE_STRINGS;
     resource_data->raw_data = NULL;

@@ -55,7 +55,7 @@ enum resource_type {
   RESOURCE_TYPE_VERSION = 16
 };
 
-struct image_dos_header {  // DOS .EXE header
+typedef struct image_dos_header {  // DOS .EXE header
   uint16_t e_magic;         // Magic number
   uint16_t e_cblp;          // Bytes on last page of file
   uint16_t e_cp;            // Pages in file
@@ -75,9 +75,9 @@ struct image_dos_header {  // DOS .EXE header
   uint16_t e_oeminfo;       // OEM information; e_oemid specific
   uint16_t e_res2[10];      // Reserved words
   uint32_t e_lfanew;        // File address of new exe header
-};
+} Image_dos_header;
 
-struct image_file_header {
+typedef struct image_file_header {
   uint16_t machine;
   uint16_t number_of_sections;
   uint32_t time_stamp;
@@ -85,14 +85,14 @@ struct image_file_header {
   uint32_t symbol_count;
   uint16_t size_of_optional_header;
   uint16_t charactersitics;
-};
+} Image_file_header;
 
-struct image_data_directory {
+typedef struct image_data_directory {
   uint32_t rva;
   uint32_t size;
-};
+} Image_data_directory;
 
-struct image_optional_header32 {
+typedef struct image_optional_header32 {
   uint16_t magic;
   unsigned char major_linker_version;
   unsigned char minor_linker_version;
@@ -123,10 +123,10 @@ struct image_optional_header32 {
   uint32_t size_of_heap_commit;
   uint32_t loader_flags;
   uint32_t number_of_rva_and_sizes;
-  struct image_data_directory data_directory[DATA_DIRECTORY_COUNT];
-};
+  Image_data_directory data_directory[DATA_DIRECTORY_COUNT];
+} Image_optional_header32;
 
-struct image_section_header {
+typedef struct image_section_header {
   char name[8]; // needs extra treatment for names > 8 characters (see doc)
   uint32_t virtual_size;
   uint32_t virtual_adress;
@@ -137,17 +137,17 @@ struct image_section_header {
   uint16_t number_of_relocations;
   uint16_t number_of_linenumbers;
   uint32_t characteristics;
-};
+} Image_section_header;
 
-struct resource_data_entry {
+typedef struct resource_data_entry {
   uint32_t data_rva; // Only important on read and will be overwritten on write
   uint32_t size;
   uint32_t codepage;
   uint32_t reserved; // must be 0
   
-};
+} Resource_data_entry;
 
-struct resource_data {
+typedef struct resource_data {
   
   enum resource_type type; // if RESOURCE_TYPE_STRINGS: strings are set
                       // else data is filled
@@ -157,33 +157,33 @@ struct resource_data {
   uint16_t number_of_strings;
   char **strings;
   
-  struct resource_data_entry data_entry;
-};
+  Resource_data_entry data_entry;
+} Resource_data;
 
-struct resource_directory_entry {
+typedef struct resource_directory_entry {
   uint32_t id; //or name rva
   uint32_t rva; // if high bit: subdirectory_entry rva else: data_entry rva
-};
+} Resource_directory_entry;
 
-struct resource_directory_table {
+typedef struct resource_directory_table {
   uint32_t characteristics;
   uint32_t time_stamp;
   uint16_t major_version;
   uint16_t minor_version;
   uint16_t number_of_name_entries;
   uint16_t number_of_id_entries;
-};
+} Resource_directory_table;
 
 // tree in memory:
-struct resource_tree_node {
+typedef struct resource_tree_node {
   
   // if there is leaf data, directory table values are set to 0 and must not
   // be changed
-  struct resource_directory_table directory_table; 
+  Resource_directory_table directory_table; 
   
   // Do not touch! Only important on read and will automatically be set on
   // write.
-  struct resource_directory_entry directory_entry;
+  Resource_directory_entry directory_entry;
   
   // contains 
   // either ( if name == NULL)
@@ -197,42 +197,42 @@ struct resource_tree_node {
   struct resource_tree_node **id_entries;
   
   // or leaf data
-  struct resource_data *resource_data;
+  Resource_data *resource_data;
   
-};
+} Resource_tree_node;
 
-struct culture_info {
+typedef struct culture_info {
   uint32_t id;
   uint32_t codepage;
   uint32_t item_count;
-};
+} Culture_info;
 
-struct culture_info_array {
-  struct culture_info *array;
+typedef struct culture_info_array {
+  Culture_info *array;
   uint32_t count;
-};
+} Culture_info_array;
 
-struct resource_section_data {
-  struct resource_tree_node *root_node;
-  struct culture_info_array culture_info;
-  struct culture_info *default_culture;
-};
+typedef struct resource_section_data {
+  Resource_tree_node *root_node;
+  Culture_info_array culture_info;
+  Culture_info *default_culture;
+} Resource_section_data;
 
-struct pcr_file {
-  struct image_dos_header dos_header;
+typedef struct pcr_file {
+  Image_dos_header dos_header;
   
   char *rm_stub; // MS-DOS Real-Mode Stub Program
   
   char signature[4];
   
-  struct image_file_header image_file_header;
-  struct image_optional_header32 *image_optional_header32;
-  struct image_section_header *section_table;
+  Image_file_header image_file_header;
+  Image_optional_header32 *image_optional_header32;
+  Image_section_header *section_table;
   
-  struct resource_section_data *rsrc_section_data;
+  Resource_section_data *rsrc_section_data;
   
   // other section data
   char **section_data;
-};
+} Pcr_file;
 
 #endif // PCRDEF_H
