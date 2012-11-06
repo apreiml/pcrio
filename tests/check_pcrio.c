@@ -162,6 +162,28 @@ START_TEST (test_pcrio_aok_stress)
   
   fail_unless(PCR_SUCCESS(err), NULL);
   
+  pcr_free(pf);
+  
+}
+END_TEST
+
+START_TEST (test_pcrio_get_codepage)
+{
+  pcr_error_code err = PCR_ERROR_NONE;
+  struct pcr_file *pf = NULL;
+  
+  pf = test_read_file(L_AOK, &err);
+  
+  fail_unless(pcr_get_codepage(pf, 4488) == 0, NULL);
+  fail_unless(pcr_get_codepageL(pf, 4488, LANG_EN) == 0, NULL);
+  
+  fail_unless(pcr_get_codepage(pf, 1010) == 0, NULL); // no string, but lang dir
+  fail_unless(pcr_get_codepage(pf, 70000) == 0, NULL); // no string, no lang
+  
+  fail_unless(pcr_get_codepageL(pf, 70000, 1234) == (unsigned)PCR_RET_ERR_LANG_NOT_SET, NULL);
+  
+  
+  pcr_free(pf);
 }
 END_TEST
 
@@ -174,6 +196,7 @@ Suite * pcrio_suite (void)
   tcase_add_test(tc_core, test_pcrio_rw_strings);
   tcase_add_test(tc_core, test_pcrio_aok_stress);
   tcase_add_test(tc_core, test_pcrio_pcr_get_string);
+  tcase_add_test(tc_core, test_pcrio_get_codepage);
   suite_add_tcase(s, tc_core);
 
   return s;

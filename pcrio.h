@@ -41,6 +41,11 @@
 
 #include "pcrdef.h"
 
+#define PCR_SUCCESS(x) (x == PCR_ERROR_NONE)
+#define PCR_FAILURE(x) (x != PCR_ERROR_NONE)
+
+#define PCR_RET_ERR_LANG_NOT_SET -2
+
 enum pcr_error {
   PCR_ERROR_NONE = 0,
   PCR_ERROR_BAD_ALLOC = 1,
@@ -61,8 +66,6 @@ typedef struct pcr_string_ {
   
 } pcr_string;
 
-#define PCR_SUCCESS(x) (x == PCR_ERROR_NONE)
-#define PCR_FAILURE(x) (x != PCR_ERROR_NONE)
 
 /**
  * Get a string describing the error. 
@@ -99,14 +102,24 @@ extern const struct pcr_language * pcr_get_default_language(const struct pcr_fil
 extern void pcr_set_default_language(struct pcr_file* pf, uint32_t language_id);
 extern void pcr_set_default_languageL(struct pcr_file *pf, struct pcr_language lang);
 
-//TODO
+/**
+ * See pcr_get_codepageL.
+ * 
+ * @return (unsigned int)-2 if default language not set (PCR_RET_ERR_LANG_NOT_SET) 
+ */
 extern uint32_t pcr_get_codepage(const struct pcr_file *pf, uint32_t string_id);
+
+/**
+ * @return codepage if string, language dir or language is sane in lang_info_array.
+ *         (unsigned int)-1 if not set.
+ */
 extern uint32_t pcr_get_codepageL(const struct pcr_file *pf, uint32_t string_id, uint32_t language_id);
   
 /**
  * Returns the string length. 
  * 
- * @return Number of characters (without ending \0) or 0 if not found. Or -1 if language id not set.
+ * @return Number of characters (without ending \0) or 0 if not found. 
+ * @return -2 if language id not set (PCR_RET_ERR_LANG_NOT_SET)
  */
 extern int32_t pcr_get_strlen(const struct pcr_file *pf, uint32_t id);
 
@@ -125,7 +138,7 @@ extern uint16_t pcr_get_strlenL(const struct pcr_file *pf, uint32_t id, uint32_t
  * @param n bytes to copy: 
  * 
  * @return >= 0 if successfull. 1 if codepage differs from default language (pcr_get_codepage).
- * @return -1 if default language is not set
+ * @return -2 if default language is not set (PCR_RET_ERR_LANG_NOT_SET) 
  */
 extern int pcr_get_string(const struct pcr_file *pf, uint32_t id, char *dest, size_t n); 
 
