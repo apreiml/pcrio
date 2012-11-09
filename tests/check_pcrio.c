@@ -104,12 +104,9 @@ START_TEST (test_pcrio_rw_strings)
   
   pf = test_read_file(L_AOE, &err);
   
-  pcr_string str;
-  str.codepage = 0;
-  str.value = "test";
-  str.size = strlen(str.value);
+  struct pcr_language lang = *pcr_get_default_language(pf);
   
-  pcr_set_string(pf, 9999, LANG_EN, str);
+  pcr_set_stringC(pf, 9999, lang, "test");
   
   pcr_write_file("out.dll", pf, &err);
   
@@ -139,24 +136,22 @@ START_TEST (test_pcrio_aok_stress)
   pf = test_read_file(L_AOK, &err);
   
   uint32_t index = 64000;
-  pcr_string str;
-  str.codepage = 0;
-  str.value = "testtesttest";
-  str.size = strlen(str.value);
+  struct pcr_language lang = *pcr_get_default_language(pf);
   
   for (; index < 70000; index++)
-    pcr_set_string(pf, index, LANG_EN, str);
+    pcr_set_stringC(pf, index, lang, "testtesttest");
   
   pcr_write_file("out_big_aok.dll", pf, &err);
   pcr_free(pf);
   
   pf = test_read_file("out_big_aok.dll", &err);
   
-  str.value = "";
-  str.size = 0;
+  for (index = 64000; index < 70000; index++)
+    test_check_string(pf, index, LANG_EN, "testtesttest");
+  
   
   for (index = 64000; index < 70000; index++)
-    pcr_set_string(pf, index, LANG_EN, str);
+    pcr_set_stringC(pf, index, lang, "");
   
   pcr_write_file("not_so_big_aok.dll", pf, &err);
   
