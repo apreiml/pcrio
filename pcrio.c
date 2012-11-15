@@ -1464,7 +1464,7 @@ void pcr_update_language_info(struct language_info_array *lang_info_array, uint3
 unsigned int pcr_get_language_count(const struct pcr_file *pf, uint32_t language_id)
 {
   const struct language_info_array *linfo = pcr_get_language_info(pf);
-  unsigned int i, lang_cnt;
+  unsigned int i, lang_cnt = 0;
   
   for (i=0; i < linfo->count; i++)
       if (language_id == linfo->array[i].lang.id)
@@ -1785,7 +1785,7 @@ int pcr_get_stringL(const struct pcr_file *pf, uint32_t id, uint32_t language_id
   
   if (default_lang != NULL && default_lang->id == language_id)
   {
-      if (sptr.codepage >= 0 && (uint32_t)sptr.codepage != default_lang->codepage)
+      if ((uint32_t)sptr.codepage != -1 && (uint32_t)sptr.codepage != default_lang->codepage)
         lang_cnt = 2; // codepage not unique
   }
   else
