@@ -1375,13 +1375,6 @@ void pcr_free(struct pcr_file* pcr_file)
     
 }
 
-extern void pcr_free_string_value(pcr_string string)
-{
-  free(string.value);
-  string.value = NULL;
-  string.size = 0;
-}
-
 /**
  * 
  */
@@ -1785,7 +1778,7 @@ int pcr_get_stringL(const struct pcr_file *pf, uint32_t id, uint32_t language_id
   
   if (default_lang != NULL && default_lang->id == language_id)
   {
-      if ((uint32_t)sptr.codepage != -1 && (uint32_t)sptr.codepage != default_lang->codepage)
+      if (sptr.codepage != (uint32_t)-1 && sptr.codepage != default_lang->codepage)
         lang_cnt = 2; // codepage not unique
   }
   else

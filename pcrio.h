@@ -58,15 +58,6 @@ enum pcr_error {
 
 typedef enum pcr_error pcr_error_code;
 
-typedef struct pcr_string_ {
-  
-  char *value;
-  uint32_t size;
-  uint32_t codepage;  
-  
-} pcr_string;
-
-
 /**
  * Get a string describing the error. 
  */
@@ -76,7 +67,6 @@ extern struct pcr_file *pcr_read_file(const char *filename, pcr_error_code *err)
 extern void pcr_write_file(const char *filename, struct pcr_file *pfile, pcr_error_code *err);
 
 extern void pcr_free(struct pcr_file *pfile);
-extern void pcr_free_string_value(pcr_string string); 
 
 /**
  * TODO better name 
