@@ -38,6 +38,7 @@
 #define PCRIO_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "pcrdef.h"
 
