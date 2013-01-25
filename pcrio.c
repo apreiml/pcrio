@@ -1872,27 +1872,27 @@ int pcr_set_stringC(struct pcr_file *pf, uint32_t id, struct pcr_language lang, 
     }
   }
   
-  char *dest_str = NULL;
+  char **dest_str = NULL;
   uint32_t src_len;
   int32_t len_diff;
   
-  dest_str = lang_node->resource_data->strings[offset];
+  dest_str = &lang_node->resource_data->strings[offset];
   
   src_len = strlen(src);
-  len_diff = src_len - strlen(dest_str);
+  len_diff = src_len - strlen(*dest_str);
   
   if (src_len == 0)
   {
-    free(dest_str);
+    free(*dest_str);
     
-    dest_str = (char *)pcr_malloc(sizeof(char), &err);
-    dest_str[0] = '\0';
+    *dest_str = (char *)pcr_malloc(sizeof(char), &err);
+    *dest_str[0] = '\0';
   }
   else
   {
-    dest_str = (char *)pcr_realloc(dest_str, src_len + 1, &err); //TODO err check
+    *dest_str = (char *)pcr_realloc(*dest_str, src_len + 1, &err); //TODO err check
       
-    strcpy(dest_str, src);
+    strcpy(*dest_str, src);
   }
   
   lang_node->resource_data->data_entry.size += (len_diff*2); // *2 word alignmend
