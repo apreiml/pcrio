@@ -1075,7 +1075,7 @@ void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream,
     pcr_zero_pad(stream, sec->pointer_to_raw_data, err_code);
     
     // TODO Debug only!
-    if (sec->pointer_to_raw_data != ftell(stream))
+    if (ftell(stream) < 0 || sec->pointer_to_raw_data != (unsigned long)ftell(stream))
       printf("Error: Section pointer differs from stream pos!\n");
     
     if (strcmp(SECTION_NAME_RESOURCE, sec->name) == 0)
