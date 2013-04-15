@@ -297,7 +297,7 @@ void pcr_fread(void *ptr, size_t size, size_t nmemb, FILE *stream,
 void pcr_fwrite(const void*ptr, size_t size, size_t nmemb, FILE *stream,
                 enum pcr_error *err)
 {
-  if (*err == PCR_ERROR_NONE)
+  if (*err == PCR_ERROR_NONE && size > 0)
   {
     if (fwrite(ptr, size, nmemb, stream) < nmemb)
       *err = PCR_ERROR_WRITE;
@@ -309,6 +309,9 @@ void pcr_fwrite(const void*ptr, size_t size, size_t nmemb, FILE *stream,
  */
 void pcr_zero_pad(FILE *stream, uint32_t pos, enum pcr_error *err)
 {
+  if (*err != PCR_ERROR_NONE)
+    return;
+
   char empty = 0;
   long lpos = pos;
   
@@ -1077,11 +1080,17 @@ void pcr_write_section_data(struct pcr_file *pcr_file, FILE *stream,
     // TODO Debug only!
     if (ftell(stream) < 0 || sec->pointer_to_raw_data != (unsigned long)ftell(stream))
       printf("Error: Section pointer differs from stream pos!\n");
+
+    printf("Write section: %s", sec->name);
     
     if (strcmp(SECTION_NAME_RESOURCE, sec->name) == 0)
       pcr_write_rsrc_section(pcr_file, stream, err_code, size);
-    else
+    else {
+      printf(" (size: %d) ", sec->size_of_raw_data);
       pcr_fwrite(pcr_file->section_data[i], sec->size_of_raw_data, 1, stream, err_code);
+    }
+
+    printf(" DONE: %d\n", *err_code);
   }
   
   // fill up until size of last section

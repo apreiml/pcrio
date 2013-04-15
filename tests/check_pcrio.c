@@ -60,6 +60,21 @@ START_TEST (test_pcrio_read)
 }
 END_TEST
 
+START_TEST (test_pcrio_rw)
+{
+  pcr_error_code err = PCR_ERROR_NONE;
+  struct pcr_file *pf = NULL;
+  
+  pf = test_read_file("lang/other/section_null.dll", &err);
+
+  pcr_write_file("out.dll", pf, &err);
+
+  fail_unless(err == PCR_ERROR_NONE, NULL);
+
+  pcr_free(pf);
+}
+END_TEST
+
 START_TEST (test_pcrio_pcr_get_string)
 {
   pcr_error_code err = PCR_ERROR_NONE;
@@ -188,6 +203,7 @@ Suite * pcrio_suite (void)
 
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_pcrio_read);
+  tcase_add_test(tc_core, test_pcrio_rw);
   tcase_add_test(tc_core, test_pcrio_rw_strings);
   tcase_add_test(tc_core, test_pcrio_aok_stress);
   tcase_add_test(tc_core, test_pcrio_pcr_get_string);
